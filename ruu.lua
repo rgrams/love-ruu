@@ -138,7 +138,6 @@ local function findNextInMap(self, map, x, y, axis, dir)
 			x = loopIndex(map[y], x, dir)
 		end
 		foundWidget = map[y][x]
-		print(self.name .. ", " .. axis .. ", " .. dir, foundWidget and foundWidget.name or foundWidget)
 		if foundWidget == self then  break  end
 	end
 	return foundWidget ~= self and foundWidget or nil
@@ -165,7 +164,6 @@ local function mapNeighbors(self, map)
 	for y,row in ipairs(map) do
 		for x,widget in ipairs(row) do
 			if widget then -- Skip empty cells.
-				print("  --  " .. widget.name .. ", " .. x .. ", " .. y .. "  --")
 				-- Up and Down
 				if #map > 1 then
 					widget.neighbor.up = findNextInMap(widget, map, x, y, "y", -1)
