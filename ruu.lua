@@ -121,6 +121,7 @@ end
 local function makeRadioButtonGroup(self, objects, isEnabled, checkedObj, releaseFunc, pressFunc, themeType, theme)
 	for i,obj in ipairs(objects) do
 		makeWidget(self, "radioButton", obj, isEnabled, themeType, theme)
+		obj.pressFunc, obj.releaseFunc = pressFunc, releaseFunc
 		if obj == checkedObj then  obj.isChecked = true  end
 		obj.siblings = {}
 		for i,sibling in ipairs(objects) do
