@@ -1,5 +1,6 @@
 
-local defaultTheme = require "ruu.defaultTheme"
+local basePath = (...):gsub('[^%.]+$', '')
+local defaultTheme = require(basePath .. "defaultTheme")
 
 local function setFocus(self, widget)
 	if widget == self.focusedWidget then  return  end
@@ -74,7 +75,8 @@ local function input(self, name, subName, change)
 end
 
 local baseFunctions = {
-	button = require "ruu.Button",
+	button = require(basePath .. "Button"),
+	toggleButton = require(basePath .. "ToggleButton")
 }
 
 local function setWidgetEnabled(self, widget, enabled)
@@ -100,15 +102,19 @@ local function makeWidget(self, widgetType, obj, isEnabled, themeType, theme)
 	obj.neighbor = {}
 	-- State
 	obj.isHovered, obj.isFocused, obj.isPressed = false, false, false
-	obj.theme[obj.themeType].init(obj)
 end
 
 local function makeButton(self, obj, isEnabled, releaseFunc, pressFunc, themeType, theme)
 	makeWidget(self, "button", obj, isEnabled, themeType, theme)
 	obj.pressFunc, obj.releaseFunc = pressFunc, releaseFunc -- User functions.
+	obj.theme[obj.themeType].init(obj)
 end
 
 local function makeToggleButton(self, obj, isEnabled, isChecked, releaseFunc, pressFunc, themeType, theme)
+	makeWidget(self, "toggleButton", obj, isEnabled, themeType, theme)
+	obj.pressFunc, obj.releaseFunc = pressFunc, releaseFunc
+	obj.isChecked = isChecked
+	obj.theme[obj.themeType].init(obj)
 end
 
 local function newRadioButtonGroup(self, objects, isEnabled, checkedObj, releaseFunc, pressFunc, themeType, theme)
@@ -192,6 +198,7 @@ local function new(baseTheme)
 		setFocus = setFocus,
 
 		makeButton = makeButton,
+		makeToggleButton = makeToggleButton,
 
 		mapNeighbors = mapNeighbors
 	}
