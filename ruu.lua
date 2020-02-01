@@ -76,7 +76,8 @@ end
 
 local baseFunctions = {
 	button = require(basePath .. "Button"),
-	toggleButton = require(basePath .. "ToggleButton")
+	toggleButton = require(basePath .. "ToggleButton"),
+	radioButton = require(basePath .. "RadioButton")
 }
 
 local function setWidgetEnabled(self, widget, enabled)
@@ -117,18 +118,27 @@ local function makeToggleButton(self, obj, isEnabled, isChecked, releaseFunc, pr
 	obj.theme[obj.themeType].init(obj)
 end
 
-local function newRadioButtonGroup(self, objects, isEnabled, checkedObj, releaseFunc, pressFunc, themeType, theme)
+local function makeRadioButtonGroup(self, objects, isEnabled, checkedObj, releaseFunc, pressFunc, themeType, theme)
+	for i,obj in ipairs(objects) do
+		makeWidget(self, "radioButton", obj, isEnabled, themeType, theme)
+		if obj == checkedObj then  obj.isChecked = true  end
+		obj.siblings = {}
+		for i,sibling in ipairs(objects) do
+			if sibling ~= obj then  table.insert(obj.siblings, sibling)  end
+		end
+		obj.theme[obj.themeType].init(obj)
+	end
 end
 
-local function newSlider(self, obj, isEnabled, fraction, releaseFunc, dragFunc, pressFunc,
+local function makeSlider(self, obj, isEnabled, fraction, releaseFunc, dragFunc, pressFunc,
 		length, handleLength, autoResizeHandle, nudgeDist, themeType, theme)
 	--
 end
 
-local function newScrollArea(self, obj, isEnabled, fraction, scrollDist, nudgeDist, themeType, theme)
+local function makeScrollArea(self, obj, isEnabled, fraction, scrollDist, nudgeDist, themeType, theme)
 end
 
-local function newInputField(self, obj, isEnabled, editFunc, confirmFunc, placeholderText, themeType, theme)
+local function makeInputField(self, obj, isEnabled, editFunc, confirmFunc, placeholderText, themeType, theme)
 end
 
 local function loopIndex(list, start, by)
@@ -199,6 +209,7 @@ local function new(baseTheme)
 
 		makeButton = makeButton,
 		makeToggleButton = makeToggleButton,
+		makeRadioButtonGroup = makeRadioButtonGroup,
 
 		mapNeighbors = mapNeighbors
 	}

@@ -55,4 +55,12 @@ function toggleButton.release(self)
 	self.angle = self.isChecked and math.pi/4 or 0
 end
 
+--##############################  TOGGLE-BUTTON  ##############################
+local radioButton = toggleButton:extend()
+M.radioButton = radioButton
+
+function radioButton.uncheck(self)
+	self.angle = 0
+end
+
 return M
