@@ -14,15 +14,15 @@ local function setValue(self, val)
 end
 
 function button.init(self)
-	setValue(self, 0.6)
+	setValue(self, 0.55)
 end
 
 function button.hover(self)
-	setValue(self, 0.8)
+	setValue(self, 0.7)
 end
 
 function button.unhover(self)
-	setValue(self, 0.6)
+	setValue(self, 0.55)
 end
 
 function button.focus(self)
@@ -34,11 +34,11 @@ function button.unfocus(self)
 end
 
 function button.press(self)
-	setValue(self, 0.45)
+	setValue(self, 1)
 end
 
 function button.release(self)
-	setValue(self, self.isHovered and 0.8 or 0.6)
+	setValue(self, self.isHovered and 0.7 or 0.55)
 end
 
 --##############################  TOGGLE-BUTTON  ##############################
