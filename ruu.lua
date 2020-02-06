@@ -14,37 +14,61 @@ end
 local function mouseMoved(self, x, y, dx, dy)
 	local didHit = false
 
-	for widget,_ in pairs(self.enabledWidgets) do
-		if widget:hitCheck(x, y) then
-			didHit = true
-			if not widget.isHovered then
-				self.hoveredWidgets[widget] = true
-				widget:hover()
+	if self.dragWidget then
+		didHit = true
+		if self.dragWidget.drag then
+			self.dragWidget:drag(dx, dy)
+		end
+		-- TODO: May still want to hit-check other widgets while dragging?
+		--       Just for drag-and-drop?
+	else
+		for widget,_ in pairs(self.enabledWidgets) do
+			if widget:hitCheck(x, y) then
+				didHit = true
+				if not widget.isHovered then
+					self.hoveredWidgets[widget] = true
+					widget:hover()
+				end
+			elseif widget.isHovered then
+				self.hoveredWidgets[widget] = nil
+				widget:unhover()
 			end
-		elseif widget.isHovered then
-			self.hoveredWidgets[widget] = nil
-			widget:unhover()
 		end
 	end
 
 	return didHit
 end
 
+local function getTopWidget(widgetList)
+	local topIndex, topWidget = -1, nil
+	for widget,_ in pairs(widgetList) do
+		if widget.drawIndex > topIndex then
+			topIndex = widget.drawIndex
+			topWidget = widget
+		end
+	end
+	return topWidget
+end
+
 local function input(self, name, subName, change)
 	if name == "click" then
 		if change == 1 then
-			local first = true
-			-- Press all hovered nodes.
-			for widget,_ in pairs(self.hoveredWidgets) do
-				widget:press()
-				if first then
-					first = false
-					-- Focus on first widget.
-					setFocus(self, widget)
+			-- Press and focus the topmost hovered node.
+			local topWidget = getTopWidget(self.hoveredWidgets)
+			if topWidget then
+				topWidget:press()
+				setFocus(self, topWidget)
+				if topWidget.isDraggable then
+					self.dragWidget = topWidget
 				end
 			end
 		elseif change == -1 then
-			-- release hovered widgets if they are pressed
+			-- TODO: Separate keyboard pressed and mouse pressed widgets?
+			--       Only release mouse pressed widget?
+			--       Allow mouse to release keyboard pressed widget?
+
+			-- Release hovered widgets if they are pressed
+			self.dragWidget = nil
 			for widget,_ in pairs(self.hoveredWidgets) do
 				if widget.isPressed then
 					widget:release()
@@ -77,15 +101,19 @@ end
 local baseFunctions = {
 	button = require(basePath .. "Button"),
 	toggleButton = require(basePath .. "ToggleButton"),
-	radioButton = require(basePath .. "RadioButton")
+	radioButton = require(basePath .. "RadioButton"),
+	sliderBar = require(basePath .. "SliderBar"),
+	sliderHandle = require(basePath .. "SliderHandle"),
 }
 
 local function setWidgetEnabled(self, widget, enabled)
+	-- TODO: Deal with things if a focused/hovered/pressed widget is disabled.
 	self.enabledWidgets[widget] = enabled or nil
 	widget.isEnabled = enabled
 end
 
 local function makeWidget(self, widgetType, obj, isEnabled, themeType, theme)
+	assert(obj, "Ruu - make " .. widgetType .. " passed a nil object.")
 	-- UI Widget Lists
 	self.allWidgets[obj] = true
 	if isEnabled then
@@ -131,9 +159,27 @@ local function makeRadioButtonGroup(self, objects, isEnabled, checkedObj, releas
 	end
 end
 
-local function makeSlider(self, obj, isEnabled, fraction, releaseFunc, dragFunc, pressFunc,
-		length, handleLength, autoResizeHandle, nudgeDist, themeType, theme)
-	--
+local function makeSlider(self, barObj, handleObj, isEnabled, releaseFunc, dragFunc, fraction, length, offset, nudgeDist, barClickDist, themeType, theme)
+	fraction = fraction or 0
+	offset = offset or 0
+	length = length or 100
+	nudgeDist = nudgeDist or self.defaultSliderNudgeDist
+	barClickDist = barClickDist or self.defaultSliderBarClickDist
+
+	makeWidget(self, "sliderHandle", handleObj, isEnabled, themeType, theme)
+	makeWidget(self, "sliderBar", barObj, isEnabled, themeType, theme)
+	barObj.handle, handleObj.bar = handleObj, barObj
+
+	handleObj.fraction = fraction
+	handleObj.isDraggable = true
+	handleObj.fraction = fraction
+	handleObj.offset, handleObj.length = offset, length
+	handleObj.nudgeDist, handleObj.barClickDist = nudgeDist, barClickDist
+	handleObj:updatePos()
+	handleObj.releaseFunc, handleObj.dragFunc = releaseFunc, dragFunc
+
+	handleObj.theme[handleObj.themeType].init(handleObj)
+	barObj.theme[barObj.themeType].init(barObj)
 end
 
 local function makeScrollArea(self, obj, isEnabled, fraction, scrollDist, nudgeDist, themeType, theme)
@@ -202,8 +248,9 @@ local function new(baseTheme)
 		enabledWidgets = {},
 		hoveredWidgets = {},
 		focusedWidget = nil,
+		pressedWidget = nil,
+		dragWidget = nil,
 		theme = baseTheme or defaultTheme,
-		isDragging = false,
 		mouseMoved = mouseMoved,
 		input = input,
 		setFocus = setFocus,
@@ -211,8 +258,12 @@ local function new(baseTheme)
 		makeButton = makeButton,
 		makeToggleButton = makeToggleButton,
 		makeRadioButtonGroup = makeRadioButtonGroup,
+		makeSlider = makeSlider,
 
-		mapNeighbors = mapNeighbors
+		mapNeighbors = mapNeighbors,
+
+		defaultSliderNudgeDist = 5,
+		defaultSliderBarClickDist = 25
 	}
 	return self
 end

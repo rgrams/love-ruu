@@ -63,4 +63,34 @@ function radioButton.uncheck(self)
 	self.angle = 0
 end
 
+--##############################  SLIDER - BAR  ##############################
+local sliderBar = button:extend()
+M.sliderBar = sliderBar
+
+function sliderBar.hover(self)  end
+
+function sliderBar.unhover(self)  end
+
+function sliderBar.press(self)
+	setValue(self, 1)
+end
+
+function sliderBar.release(self)
+	setValue(self, 0.55)
+end
+
+--##############################  SLIDER - HANDLE  ##############################
+local sliderHandle = button:extend()
+M.sliderHandle = sliderHandle
+
+function sliderHandle.init(self)
+	sliderHandle.super.init(self)
+	sliderHandle.drag(self)
+end
+
+function sliderHandle.drag(self)
+	self.angle = self.fraction * math.pi
+end
+
+
 return M
