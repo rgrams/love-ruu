@@ -105,23 +105,23 @@ local function makeWidget(self, widgetType, obj, isEnabled, themeType, theme)
 	obj.isHovered, obj.isFocused, obj.isPressed = false, false, false
 end
 
-local function makeButton(self, obj, isEnabled, releaseFunc, pressFunc, themeType, theme)
+local function makeButton(self, obj, isEnabled, releaseFunc, themeType, theme)
 	makeWidget(self, "button", obj, isEnabled, themeType, theme)
-	obj.pressFunc, obj.releaseFunc = pressFunc, releaseFunc -- User functions.
+	obj.releaseFunc = releaseFunc -- User functions.
 	obj.theme[obj.themeType].init(obj)
 end
 
-local function makeToggleButton(self, obj, isEnabled, isChecked, releaseFunc, pressFunc, themeType, theme)
+local function makeToggleButton(self, obj, isEnabled, isChecked, releaseFunc, themeType, theme)
 	makeWidget(self, "toggleButton", obj, isEnabled, themeType, theme)
-	obj.pressFunc, obj.releaseFunc = pressFunc, releaseFunc
+	obj.releaseFunc = releaseFunc
 	obj.isChecked = isChecked
 	obj.theme[obj.themeType].init(obj)
 end
 
-local function makeRadioButtonGroup(self, objects, isEnabled, checkedObj, releaseFunc, pressFunc, themeType, theme)
+local function makeRadioButtonGroup(self, objects, isEnabled, checkedObj, releaseFunc, themeType, theme)
 	for i,obj in ipairs(objects) do
 		makeWidget(self, "radioButton", obj, isEnabled, themeType, theme)
-		obj.pressFunc, obj.releaseFunc = pressFunc, releaseFunc
+		obj.releaseFunc = releaseFunc
 		if obj == checkedObj then  obj.isChecked = true  end
 		obj.siblings = {}
 		for i,sibling in ipairs(objects) do
