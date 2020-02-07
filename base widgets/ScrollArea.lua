@@ -58,18 +58,19 @@ function ScrollArea.scroll(self, dx, dy)
 	local w2, h2 = self.innerW/2, self.innerH/2
 	-- For each axis:
 	if b.w <= self.innerW then -- Bounds are smaller than mask area - don't allow children out.
-		local outLt = math.min(lt + w2, 0)
-		local outRt = math.max(rt - w2, 0)
-		dx = dx - outLt - outRt
+		-- Don't allow scrolling - remove original delta.
+		local outLt = math.min(lt - dx + w2, 0)
+		local outRt = math.max(rt - dx - w2, 0)
+		dx = 0 - outLt - outRt
 	else -- If bounds are larger than mask area - don't allow scrolling past.
 		local insideLt = math.max(lt + w2, 0)
 		local insideRt = math.min(rt - w2, 0)
 		dx = dx - insideLt - insideRt
 	end
 	if b.h <= self.innerH then
-		local outTop = math.min(top + h2, 0)
-		local outBot = math.max(bot - h2, 0)
-		dy = dy - outTop - outBot
+		local outTop = math.min(top - dy + h2, 0)
+		local outBot = math.max(bot - dy - h2, 0)
+		dy = 0 - outTop - outBot
 	else
 		local insideTop = math.max(top + h2, 0)
 		local insideBot = math.min(bot - h2, 0)
