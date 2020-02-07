@@ -20,19 +20,25 @@ local function mouseMoved(self, x, y, dx, dy)
 		if self.dragWidget.drag then
 			self.dragWidget:drag(dx, dy)
 		end
-		-- TODO: May still want to hit-check other widgets while dragging?
-		--       Just for drag-and-drop?
-	else
-		for widget,_ in pairs(self.enabledWidgets) do
+	end
+	-- Still hit-check all widgets while dragging, for scroll areas and drag-and-drop.
+	for widget,_ in pairs(self.enabledWidgets) do
+		if widget ~= self.dragWidget then
 			if widget:hitCheck(x, y) then
 				didHit = true
 				if not widget.isHovered then
 					self.hoveredWidgets[widget] = true
-					widget:hover()
+					-- Don't hover while dragging
+					-- TODO: will want to hover while drag-and-dropping.
+					if not self.dragWidget then
+						widget:hover()
+					end
 				end
-			elseif widget.isHovered then
+			else -- Will get added to the list but not actually hovered if dragging a widget.
 				self.hoveredWidgets[widget] = nil
-				widget:unhover()
+				if widget.isHovered then
+					widget:unhover()
+				end
 			end
 		end
 	end
@@ -96,6 +102,14 @@ local function input(self, name, subName, change)
 				setFocus(self, neighbor)
 			end
 		end
+	elseif name == "scroll x" then
+		for widget,_ in pairs(self.hoveredWidgets) do
+			if widget.scroll then  widget:scroll(change, 0)  end
+		end
+	elseif name == "scroll y" then
+		for widget,_ in pairs(self.hoveredWidgets) do
+			if widget.scroll then  widget:scroll(0, change)  end
+		end
 	end
 end
 
@@ -107,6 +121,7 @@ local baseFunctions = {
 	RadioButton = require(baseWidgetPath .. "RadioButton"),
 	SliderBar = require(baseWidgetPath .. "SliderBar"),
 	SliderHandle = require(baseWidgetPath .. "SliderHandle"),
+	ScrollArea = require(baseWidgetPath .. "ScrollArea"),
 }
 
 local function setWidgetEnabled(self, widget, enabled)
@@ -185,7 +200,21 @@ local function makeSlider(self, barObj, handleObj, isEnabled, releaseFunc, dragF
 	barObj.theme[barObj.themeType].init(barObj)
 end
 
-local function makeScrollArea(self, obj, isEnabled, fraction, scrollDist, nudgeDist, themeType, theme)
+local function makeScrollArea(self, obj, isEnabled, ox, oy, scrollDist, nudgeDist, themeType, theme)
+	assert(
+		obj.enableMask and obj.disableMask and obj.setOffset,
+		"Ruu.makeScrollArea - object: '" .. tostring(obj) .. "' is not a Mask."
+	)
+	ox, oy = ox or 0, oy or 0
+	scrollDist = scrollDist or self.defaultScrollAreaScrollDist
+	nudgeDist = nudgeDist or self.defaultScrollAreaNudgeDist
+
+	makeWidget(self, "ScrollArea", obj, isEnabled, themeType, theme)
+	obj.scrollX, obj.scrollY = 0, 0
+	if ox ~= 0 or oy ~= 0 then  obj:scroll(ox, oy)  end
+	obj.scrollDist, obj.nudgeDist = scrollDist, nudgeDist
+
+	obj.theme[obj.themeType].init(obj)
 end
 
 local function makeInputField(self, obj, isEnabled, editFunc, confirmFunc, placeholderText, themeType, theme)
@@ -263,11 +292,14 @@ local function new(baseTheme)
 		makeToggleButton = makeToggleButton,
 		makeRadioButtonGroup = makeRadioButtonGroup,
 		makeSlider = makeSlider,
+		makeScrollArea = makeScrollArea,
 
 		mapNeighbors = mapNeighbors,
 
 		defaultSliderNudgeDist = 5,
-		defaultSliderBarClickDist = 25
+		defaultSliderBarClickDist = 25,
+		defaultScrollAreaScrollDist = 20,
+		defaultScrollAreaNudgeDist = 20
 	}
 	return self
 end

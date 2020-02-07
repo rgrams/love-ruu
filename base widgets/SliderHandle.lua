@@ -26,7 +26,6 @@ function SliderHandle.drag(self, dx, dy, isLocal)
 	self:updatePos(dx, dy, isLocal)
 
 	self.fraction = (self.parentOffsetX - self.offset + self.length/2) / self.length
-	print(self.fraction)
 	if self.dragFunc then  self:dragFunc(self.fraction)  end
 
 	self.theme[self.themeType].drag(self, dx, dy)

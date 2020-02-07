@@ -55,7 +55,7 @@ function ToggleButton.release(self)
 	self.angle = self.isChecked and math.pi/4 or 0
 end
 
---##############################  TOGGLE-BUTTON  ##############################
+--##############################  RADIO-BUTTON  ##############################
 local RadioButton = ToggleButton:extend()
 M.RadioButton = RadioButton
 
@@ -103,5 +103,17 @@ function SliderHandle.unfocus(self)
 	self.w, self.h = self.w / 1.2, self.h / 1.2
 	self:_updateInnerSize()
 end
+
+--##############################  SCROLL-AREA  ##############################
+local ScrollArea = Button:extend()
+M.ScrollArea = ScrollArea
+
+function ScrollArea.init(self)  end
+function ScrollArea.hover(self)  end
+function ScrollArea.unhover(self)  end
+function ScrollArea.focus(self)  end
+function ScrollArea.unfocus(self)  end
+function ScrollArea.press(self)  end
+function ScrollArea.release(self)  end
 
 return M
