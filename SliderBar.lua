@@ -4,14 +4,18 @@ local Button = require(basePath .. "Button")
 
 local SliderBar = Button:extend()
 
-function SliderBar.release(self, dontFire, mx, my)
+function SliderBar.press(self, mx, my)
 	if not dontFire then
-		-- TODO: Get release X and Y from RUU.
-		-- TODO: Figure which side of the slider handle the user clicked.
-		--       Move self.barClickDist in that direction.
-		--          self.handle:drag(dx, 0, true)
+		-- Figure on which side of the handle the user clicked & slide in that direction.
+		local handleX = self.handle.parentOffsetX
+		local localClickX, localClickY = self:toLocal(mx, my)
+		if localClickX > handleX then
+			self.handle:drag(self.handle.barClickDist, 0, true)
+		elseif localClickX < handleX then
+			self.handle:drag(-self.handle.barClickDist, 0, true)
+		end
 	end
-	SliderBar.super.release(self, dontFire)
+	SliderBar.super.press(self, mx, my)
 end
 
 return SliderBar
