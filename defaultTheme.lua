@@ -68,8 +68,10 @@ local sliderBar = button:extend()
 M.sliderBar = sliderBar
 
 function sliderBar.hover(self)  end
-
 function sliderBar.unhover(self)  end
+
+function sliderBar.focus(self)  end
+function sliderBar.unfocus(self)  end
 
 function sliderBar.press(self)
 	setValue(self, 1)

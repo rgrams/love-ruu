@@ -16,7 +16,7 @@ function SliderHandle.updatePos(self, dx, dy, isLocal)
 			dx, dy = bar:toLocal(wx, wy)
 		end
 		-- Clamp to start and end points.
-		self.parentOffsetX = math.max(startPoint, math.min(endPoint, self.parentOffsetX + dx or 0))
+		self.parentOffsetX = math.max(startPoint, math.min(endPoint, self.parentOffsetX + dx))
 	else -- Set based on current fraction.
 		self.parentOffsetX = startPoint + self.length * self.fraction
 	end
@@ -32,10 +32,19 @@ function SliderHandle.drag(self, dx, dy, isLocal)
 	self.theme[self.themeType].drag(self, dx, dy)
 end
 
---[[
-function SliderHandle.focusNeighbor(self, dir)
-	return self.neighbor[dir]
+local dirs = { up = {0, -1}, down = {0, 1}, left = {-1, 0}, right = {1, 0} }
+local COS45 = math.cos(math.rad(45))
+
+function SliderHandle.getFocusNeighbor(self, dir)
+	local dirVec = dirs[dir]
+	local bar = self.bar
+	local x, y = bar._to_world.x + dirVec[1], bar._to_world.y + dirVec[2]
+	x, y = bar:toLocal(x, y)
+	if math.abs(x) > COS45 then -- Input direction is roughly aligned with slider rotation.
+		self:drag(x * self.nudgeDist, 0, true)
+	else
+		return self.neighbor[dir]
+	end
 end
---]]
 
 return SliderHandle
