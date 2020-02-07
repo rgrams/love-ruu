@@ -25,16 +25,16 @@ function Button.unfocus(self)
 	if self.isPressed then  self:release(true)  end -- Release without firing.
 end
 
-function Button.press(self)
+function Button.press(self, mx, my)
 	self.isPressed = true
-	self.theme[self.themeType].press(self)
-	if self.pressFunc then  self:pressFunc()  end
+	self.theme[self.themeType].press(self, mx, my)
+	if self.pressFunc then  self:pressFunc(mx, my)  end
 end
 
-function Button.release(self, dontFire)
+function Button.release(self, dontFire, mx, my)
 	self.isPressed = false
-	self.theme[self.themeType].release(self, dontFire)
-	if self.releaseFunc and not dontFire then  self:releaseFunc()  end
+	self.theme[self.themeType].release(self, dontFire, mx, my)
+	if self.releaseFunc and not dontFire then  self:releaseFunc(mx, my)  end
 end
 
 -- Have this function here, or keep it in manager?

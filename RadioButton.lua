@@ -4,7 +4,7 @@ local Button = require(basePath .. "Button")
 
 local RadioButton = Button:extend()
 
-function RadioButton.release(self, dontFire)
+function RadioButton.release(self, dontFire, mx, my)
 	self.isPressed = false
 	if not dontFire then
 		if not self.isChecked then
@@ -14,9 +14,9 @@ function RadioButton.release(self, dontFire)
 				btn.isChecked = false
 			end
 		end
-		if self.releaseFunc then  self:releaseFunc()  end
+		if self.releaseFunc then  self:releaseFunc(mx, my)  end
 	end
-	self.theme[self.themeType].release(self, dontFire)
+	self.theme[self.themeType].release(self, dontFire, mx, my)
 end
 
 return RadioButton

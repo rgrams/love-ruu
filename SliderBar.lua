@@ -4,7 +4,7 @@ local Button = require(basePath .. "Button")
 
 local SliderBar = Button:extend()
 
-function SliderBar.release(self, dontFire)
+function SliderBar.release(self, dontFire, mx, my)
 	if not dontFire then
 		-- TODO: Get release X and Y from RUU.
 		-- TODO: Figure which side of the slider handle the user clicked.

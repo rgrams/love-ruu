@@ -13,6 +13,7 @@ end
 
 local function mouseMoved(self, x, y, dx, dy)
 	local didHit = false
+	self.mx, self.my = x, y
 
 	if self.dragWidget then
 		didHit = true
@@ -56,7 +57,7 @@ local function input(self, name, subName, change)
 			-- Press and focus the topmost hovered node.
 			local topWidget = getTopWidget(self.hoveredWidgets)
 			if topWidget then
-				topWidget:press()
+				topWidget:press(self.mx, self.my)
 				setFocus(self, topWidget)
 				if topWidget.isDraggable then
 					self.dragWidget = topWidget
@@ -71,7 +72,7 @@ local function input(self, name, subName, change)
 			self.dragWidget = nil
 			for widget,_ in pairs(self.hoveredWidgets) do
 				if widget.isPressed then
-					widget:release()
+					widget:release(false, self.mx, self.my)
 				end
 			end
 		end
@@ -252,6 +253,7 @@ local function new(baseTheme)
 		dragWidget = nil,
 		theme = baseTheme or defaultTheme,
 		mouseMoved = mouseMoved,
+		mx = 0, my = 0,
 		input = input,
 		setFocus = setFocus,
 
