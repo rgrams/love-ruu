@@ -99,12 +99,14 @@ local function input(self, name, subName, change)
 	end
 end
 
+local baseWidgetPath = basePath .. "base widgets."
+
 local baseFunctions = {
-	Button = require(basePath .. "Button"),
-	ToggleButton = require(basePath .. "ToggleButton"),
-	RadioButton = require(basePath .. "RadioButton"),
-	SliderBar = require(basePath .. "SliderBar"),
-	SliderHandle = require(basePath .. "SliderHandle"),
+	Button = require(baseWidgetPath .. "Button"),
+	ToggleButton = require(baseWidgetPath .. "ToggleButton"),
+	RadioButton = require(baseWidgetPath .. "RadioButton"),
+	SliderBar = require(baseWidgetPath .. "SliderBar"),
+	SliderHandle = require(baseWidgetPath .. "SliderHandle"),
 }
 
 local function setWidgetEnabled(self, widget, enabled)

@@ -1,6 +1,6 @@
 
 local basePath = (...):gsub('[^%.]+$', '')
-local Class = require(basePath .. "base-class")
+local Class = require(basePath .. "base widgets.base-class")
 
 local M = {}
 
