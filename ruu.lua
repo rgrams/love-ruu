@@ -2,6 +2,17 @@
 local basePath = (...):gsub('[^%.]+$', '')
 local defaultTheme = require(basePath .. "defaultTheme")
 
+local baseWidgetPath = basePath .. "base widgets."
+
+local baseFunctions = {
+	Button = require(baseWidgetPath .. "Button"),
+	ToggleButton = require(baseWidgetPath .. "ToggleButton"),
+	RadioButton = require(baseWidgetPath .. "RadioButton"),
+	SliderBar = require(baseWidgetPath .. "SliderBar"),
+	SliderHandle = require(baseWidgetPath .. "SliderHandle"),
+	ScrollArea = require(baseWidgetPath .. "ScrollArea"),
+}
+
 local function setFocus(self, widget)
 	if widget == self.focusedWidget then  return  end
 	if self.focusedWidget then
@@ -112,17 +123,6 @@ local function input(self, name, subName, change)
 		end
 	end
 end
-
-local baseWidgetPath = basePath .. "base widgets."
-
-local baseFunctions = {
-	Button = require(baseWidgetPath .. "Button"),
-	ToggleButton = require(baseWidgetPath .. "ToggleButton"),
-	RadioButton = require(baseWidgetPath .. "RadioButton"),
-	SliderBar = require(baseWidgetPath .. "SliderBar"),
-	SliderHandle = require(baseWidgetPath .. "SliderHandle"),
-	ScrollArea = require(baseWidgetPath .. "ScrollArea"),
-}
 
 local function setWidgetEnabled(self, widget, enabled)
 	-- TODO: Deal with things if a focused/hovered/pressed widget is disabled.
