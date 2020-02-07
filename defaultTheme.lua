@@ -5,101 +5,101 @@ local Class = require(basePath .. "base-class")
 local M = {}
 
 --##############################  BUTTON  ##############################
-local button = Class:extend()
-M.button = button
+local Button = Class:extend()
+M.Button = Button
 
 local function setValue(self, val)
 	local c = self.color
 	c[1], c[2], c[3] = val, val, val
 end
 
-function button.init(self)
+function Button.init(self)
 	setValue(self, 0.55)
 end
 
-function button.hover(self)
+function Button.hover(self)
 	setValue(self, 0.7)
 end
 
-function button.unhover(self)
+function Button.unhover(self)
 	setValue(self, 0.55)
 end
 
-function button.focus(self)
+function Button.focus(self)
 	self.sy = 1.2
 end
 
-function button.unfocus(self)
+function Button.unfocus(self)
 	self.sy = 1
 end
 
-function button.press(self)
+function Button.press(self)
 	setValue(self, 1)
 end
 
-function button.release(self)
+function Button.release(self)
 	setValue(self, self.isHovered and 0.7 or 0.55)
 end
 
 --##############################  TOGGLE-BUTTON  ##############################
-local toggleButton = button:extend()
-M.toggleButton = toggleButton
+local ToggleButton = Button:extend()
+M.ToggleButton = ToggleButton
 
-function toggleButton.init(self)
-	toggleButton.super.init(self)
+function ToggleButton.init(self)
+	ToggleButton.super.init(self)
 	self.angle = self.isChecked and math.pi/4 or 0
 end
 
-function toggleButton.release(self)
-	toggleButton.super.release(self)
+function ToggleButton.release(self)
+	ToggleButton.super.release(self)
 	self.angle = self.isChecked and math.pi/4 or 0
 end
 
 --##############################  TOGGLE-BUTTON  ##############################
-local radioButton = toggleButton:extend()
-M.radioButton = radioButton
+local RadioButton = ToggleButton:extend()
+M.RadioButton = RadioButton
 
-function radioButton.uncheck(self)
+function RadioButton.uncheck(self)
 	self.angle = 0
 end
 
 --##############################  SLIDER - BAR  ##############################
-local sliderBar = button:extend()
-M.sliderBar = sliderBar
+local SliderBar = Button:extend()
+M.SliderBar = SliderBar
 
-function sliderBar.hover(self)  end
-function sliderBar.unhover(self)  end
+function SliderBar.hover(self)  end
+function SliderBar.unhover(self)  end
 
-function sliderBar.focus(self)  end
-function sliderBar.unfocus(self)  end
+function SliderBar.focus(self)  end
+function SliderBar.unfocus(self)  end
 
-function sliderBar.press(self)
+function SliderBar.press(self)
 	setValue(self, 1)
 end
 
-function sliderBar.release(self)
+function SliderBar.release(self)
 	setValue(self, 0.55)
 end
 
 --##############################  SLIDER - HANDLE  ##############################
-local sliderHandle = button:extend()
-M.sliderHandle = sliderHandle
+local SliderHandle = Button:extend()
+M.SliderHandle = SliderHandle
 
-function sliderHandle.init(self)
-	sliderHandle.super.init(self)
-	sliderHandle.drag(self)
+function SliderHandle.init(self)
+	SliderHandle.super.init(self)
+	SliderHandle.drag(self)
 end
 
-function sliderHandle.drag(self)
+function SliderHandle.drag(self)
 	self.angle = self.fraction * math.pi
 end
 
-function sliderHandle.focus(self)
+function SliderHandle.focus(self)
 	self.w, self.h = self.w * 1.2, self.h * 1.2
 	self:_updateInnerSize()
 end
 
-function sliderHandle.unfocus(self)
+function SliderHandle.unfocus(self)
 	self.w, self.h = self.w / 1.2, self.h / 1.2
 	self:_updateInnerSize()
 end

@@ -100,11 +100,11 @@ local function input(self, name, subName, change)
 end
 
 local baseFunctions = {
-	button = require(basePath .. "Button"),
-	toggleButton = require(basePath .. "ToggleButton"),
-	radioButton = require(basePath .. "RadioButton"),
-	sliderBar = require(basePath .. "SliderBar"),
-	sliderHandle = require(basePath .. "SliderHandle"),
+	Button = require(basePath .. "Button"),
+	ToggleButton = require(basePath .. "ToggleButton"),
+	RadioButton = require(basePath .. "RadioButton"),
+	SliderBar = require(basePath .. "SliderBar"),
+	SliderHandle = require(basePath .. "SliderHandle"),
 }
 
 local function setWidgetEnabled(self, widget, enabled)
@@ -135,13 +135,13 @@ local function makeWidget(self, widgetType, obj, isEnabled, themeType, theme)
 end
 
 local function makeButton(self, obj, isEnabled, releaseFunc, themeType, theme)
-	makeWidget(self, "button", obj, isEnabled, themeType, theme)
+	makeWidget(self, "Button", obj, isEnabled, themeType, theme)
 	obj.releaseFunc = releaseFunc -- User functions.
 	obj.theme[obj.themeType].init(obj)
 end
 
 local function makeToggleButton(self, obj, isEnabled, isChecked, releaseFunc, themeType, theme)
-	makeWidget(self, "toggleButton", obj, isEnabled, themeType, theme)
+	makeWidget(self, "ToggleButton", obj, isEnabled, themeType, theme)
 	obj.releaseFunc = releaseFunc
 	obj.isChecked = isChecked
 	obj.theme[obj.themeType].init(obj)
@@ -149,7 +149,7 @@ end
 
 local function makeRadioButtonGroup(self, objects, isEnabled, checkedObj, releaseFunc, themeType, theme)
 	for i,obj in ipairs(objects) do
-		makeWidget(self, "radioButton", obj, isEnabled, themeType, theme)
+		makeWidget(self, "RadioButton", obj, isEnabled, themeType, theme)
 		obj.releaseFunc = releaseFunc
 		if obj == checkedObj then  obj.isChecked = true  end
 		obj.siblings = {}
@@ -167,8 +167,8 @@ local function makeSlider(self, barObj, handleObj, isEnabled, releaseFunc, dragF
 	nudgeDist = nudgeDist or self.defaultSliderNudgeDist
 	barClickDist = barClickDist or self.defaultSliderBarClickDist
 
-	makeWidget(self, "sliderHandle", handleObj, isEnabled, themeType, theme)
-	makeWidget(self, "sliderBar", barObj, isEnabled, themeType, theme)
+	makeWidget(self, "SliderHandle", handleObj, isEnabled, themeType, theme)
+	makeWidget(self, "SliderBar", barObj, isEnabled, themeType, theme)
 	barObj.handle, handleObj.bar = handleObj, barObj
 
 	handleObj.fraction = fraction
