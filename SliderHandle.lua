@@ -32,14 +32,10 @@ function SliderHandle.drag(self, dx, dy, isLocal)
 	self.theme[self.themeType].drag(self, dx, dy)
 end
 
--- Have this function here, or keep it in manager?
+--[[
 function SliderHandle.focusNeighbor(self, dir)
-	local neighbor = self.neighbors[dir]
-	if neighbor then
-		self:unfocus()
-		neighbor:focus()
-	end
-	return neighbor
+	return self.neighbor[dir]
 end
+--]]
 
 return SliderHandle

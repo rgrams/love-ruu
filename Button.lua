@@ -37,14 +37,8 @@ function Button.release(self, dontFire, mx, my)
 	if self.releaseFunc and not dontFire then  self:releaseFunc(mx, my)  end
 end
 
--- Have this function here, or keep it in manager?
-function Button.focusNeighbor(self, dir)
-	local neighbor = self.neighbors[dir]
-	if neighbor then
-		self:unfocus()
-		neighbor:focus()
-	end
-	return neighbor
+function Button.getFocusNeighbor(self, dir)
+	return self.neighbor[dir]
 end
 
 return Button

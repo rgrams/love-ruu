@@ -91,7 +91,7 @@ local function input(self, name, subName, change)
 	elseif name == "direction" and change == 1 then
 		local widget = self.focusedWidget
 		if widget then
-			local neighbor = widget.neighbor[subName]
+			local neighbor = widget:getFocusNeighbor(subName)
 			if neighbor then
 				setFocus(self, neighbor)
 			end
