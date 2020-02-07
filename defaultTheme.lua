@@ -92,5 +92,14 @@ function sliderHandle.drag(self)
 	self.angle = self.fraction * math.pi
 end
 
+function sliderHandle.focus(self)
+	self.w, self.h = self.w * 1.2, self.h * 1.2
+	self:_updateInnerSize()
+end
+
+function sliderHandle.unfocus(self)
+	self.w, self.h = self.w / 1.2, self.h / 1.2
+	self:_updateInnerSize()
+end
 
 return M
