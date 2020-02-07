@@ -211,8 +211,9 @@ local function makeScrollArea(self, obj, isEnabled, ox, oy, scrollDist, nudgeDis
 
 	makeWidget(self, "ScrollArea", obj, isEnabled, themeType, theme)
 	obj.scrollX, obj.scrollY = 0, 0
-	if ox ~= 0 or oy ~= 0 then  obj:scroll(ox, oy)  end
 	obj.scrollDist, obj.nudgeDist = scrollDist, nudgeDist
+	obj.childBounds = { lt=0, rt=0, top=0, bot=0, w=0, h=0 }
+	obj:scroll(ox, oy)
 
 	obj.theme[obj.themeType].init(obj)
 end
