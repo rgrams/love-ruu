@@ -11,6 +11,7 @@ local baseFunctions = {
 	SliderBar = require(baseWidgetPath .. "SliderBar"),
 	SliderHandle = require(baseWidgetPath .. "SliderHandle"),
 	ScrollArea = require(baseWidgetPath .. "ScrollArea"),
+	InputField = require(baseWidgetPath .. "InputField")
 }
 
 local function setFocus(self, widget)
@@ -121,6 +122,12 @@ local function input(self, name, subName, change)
 		for widget,_ in pairs(self.hoveredWidgets) do
 			if widget.scroll then  widget:scroll(0, change)  end
 		end
+	elseif name == "text" then
+		local widget = self.focusedWidget
+		if widget and widget.textInput then  widget:textInput(change)  end
+	elseif name == "backspace" then
+		local widget = self.focusedWidget
+		if widget and widget.backspace then  widget:backspace()  end
 	end
 end
 
@@ -218,7 +225,16 @@ local function makeScrollArea(self, obj, isEnabled, ox, oy, scrollDist, nudgeDis
 	obj.theme[obj.themeType].init(obj)
 end
 
-local function makeInputField(self, obj, isEnabled, editFunc, confirmFunc, placeholderText, themeType, theme)
+local function makeInputField(self, obj, textObj, isEnabled, editFunc, confirmFunc, placeholderText, themeType, theme)
+	placeholderText = placeholderText or ""
+
+	makeWidget(self, "InputField", obj, isEnabled, themeType, theme)
+	obj.textObj = textObj
+	textObj.text = placeholderText
+	obj.placeholderText = placeholderText
+	obj.editFunc, obj.confirmFunc = editFunc, confirmFunc
+	obj.text = ""
+	obj.theme[obj.themeType].init(obj)
 end
 
 local function loopIndex(list, start, by)
@@ -294,6 +310,7 @@ local function new(baseTheme)
 		makeRadioButtonGroup = makeRadioButtonGroup,
 		makeSlider = makeSlider,
 		makeScrollArea = makeScrollArea,
+		makeInputField = makeInputField,
 
 		mapNeighbors = mapNeighbors,
 
