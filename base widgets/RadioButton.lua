@@ -4,7 +4,7 @@ local Button = require(basePath .. "Button")
 
 local RadioButton = Button:extend()
 
-function RadioButton.release(self, dontFire, mx, my)
+function RadioButton.release(self, dontFire, mx, my, isKeyboard)
 	self.isPressed = false
 	if not dontFire then
 		if not self.isChecked then

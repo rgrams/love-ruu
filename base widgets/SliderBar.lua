@@ -4,7 +4,7 @@ local Button = require(basePath .. "Button")
 
 local SliderBar = Button:extend()
 
-function SliderBar.press(self, mx, my)
+function SliderBar.press(self, mx, my, isKeyboard)
 	if mx and my then
 		-- Figure on which side of the handle the user clicked & slide in that direction.
 		local handleX = self.handle.parentOffsetX

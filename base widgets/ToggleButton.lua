@@ -4,7 +4,7 @@ local Button = require(basePath .. "Button")
 
 local ToggleButton = Button:extend()
 
-function ToggleButton.release(self, dontFire, mx, my)
+function ToggleButton.release(self, dontFire, mx, my, isKeyboard)
 	self.isPressed = false
 	if not dontFire then
 		self.isChecked = not self.isChecked

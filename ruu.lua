@@ -97,12 +97,12 @@ local function input(self, name, subName, change)
 	elseif name == "enter" then
 		if change == 1 then
 			if self.focusedWidget then
-				self.focusedWidget:press()
+				self.focusedWidget:press(nil, nil, true)
 			end
 		elseif change == -1 then
 			if self.focusedWidget then
 				if self.focusedWidget.isPressed then
-					self.focusedWidget:release()
+					self.focusedWidget:release(nil, nil, nil, true)
 				end
 			end
 		end
