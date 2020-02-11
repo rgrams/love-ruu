@@ -80,6 +80,7 @@ local function input(self, name, subName, change)
 				if topWidget.isDraggable then
 					self.dragWidget = topWidget
 				end
+				return true
 			end
 		elseif change == -1 then
 			-- TODO: Separate keyboard pressed and mouse pressed widgets?
@@ -93,17 +94,22 @@ local function input(self, name, subName, change)
 					widget:release(false, self.mx, self.my)
 				end
 			end
+			if next(self.hoveredWidgets) then
+				return true
+			end
 		end
 	elseif name == "enter" then
 		if change == 1 then
 			if self.focusedWidget then
 				self.focusedWidget:press(nil, nil, true)
+				return true
 			end
 		elseif change == -1 then
 			if self.focusedWidget then
 				if self.focusedWidget.isPressed then
 					self.focusedWidget:release(nil, nil, nil, true)
 				end
+				return true
 			end
 		end
 	elseif name == "direction" and change == 1 then
@@ -112,22 +118,41 @@ local function input(self, name, subName, change)
 			local neighbor = widget:getFocusNeighbor(subName)
 			if neighbor then
 				setFocus(self, neighbor)
+				return true
+			elseif neighbor == false then -- No neighbor, but used input.
+				return true
 			end
 		end
 	elseif name == "scroll x" then
+		local didScroll = false
 		for widget,_ in pairs(self.hoveredWidgets) do
-			if widget.scroll then  widget:scroll(change, 0)  end
+			if widget.scroll then
+				widget:scroll(change, 0)
+				didScroll = true
+			end
 		end
+		return didScroll
 	elseif name == "scroll y" then
+		local didScroll = false
 		for widget,_ in pairs(self.hoveredWidgets) do
-			if widget.scroll then  widget:scroll(0, change)  end
+			if widget.scroll then
+				widget:scroll(0, change)
+				didScroll = true
+			end
 		end
+		return didScroll
 	elseif name == "text" then
 		local widget = self.focusedWidget
-		if widget and widget.textInput then  widget:textInput(change)  end
+		if widget and widget.textInput then
+			widget:textInput(change)
+			return true
+		end
 	elseif name == "backspace" then
 		local widget = self.focusedWidget
-		if widget and widget.backspace then  widget:backspace()  end
+		if widget and widget.backspace then
+			widget:backspace()
+			return true
+		end
 	end
 end
 

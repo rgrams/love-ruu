@@ -41,6 +41,7 @@ function SliderHandle.getFocusNeighbor(self, dir)
 	x, y = bar:toLocal(x, y)
 	if math.abs(x) > COS45 then -- Input direction is roughly aligned with slider rotation.
 		self:drag(x * self.nudgeDist, 0, true)
+		return false
 	else
 		return self.neighbor[dir]
 	end
