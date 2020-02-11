@@ -11,7 +11,8 @@ local baseFunctions = {
 	SliderBar = require(baseWidgetPath .. "SliderBar"),
 	SliderHandle = require(baseWidgetPath .. "SliderHandle"),
 	ScrollArea = require(baseWidgetPath .. "ScrollArea"),
-	InputField = require(baseWidgetPath .. "InputField")
+	InputField = require(baseWidgetPath .. "InputField"),
+	Panel = require(baseWidgetPath .. "Panel")
 }
 
 local function setFocus(self, widget)
@@ -262,6 +263,11 @@ local function makeInputField(self, obj, textObj, isEnabled, editFunc, confirmFu
 	obj.theme[obj.themeType].init(obj)
 end
 
+local function makePanel(self, obj, isEnabled, themeType, theme)
+	makeWidget(self, "Panel", obj, isEnabled, themeType, theme)
+	obj.theme[obj.themeType].init(obj)
+end
+
 local function loopIndex(list, start, by)
 	return (start - 1 + by) % #list + 1
 end
@@ -336,6 +342,7 @@ local function new(baseTheme)
 		makeSlider = makeSlider,
 		makeScrollArea = makeScrollArea,
 		makeInputField = makeInputField,
+		makePanel = makePanel,
 
 		mapNeighbors = mapNeighbors,
 
