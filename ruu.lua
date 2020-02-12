@@ -15,6 +15,30 @@ local baseFunctions = {
 	Panel = require(baseWidgetPath .. "Panel")
 }
 
+local LAYER_DEPTH_MULT = 10000
+
+local function registerLayers(self, layers)
+	local i = 1
+	for li=#layers,1,-1 do
+		local layerName = layers[li]
+		self.layers[layerName] = i * LAYER_DEPTH_MULT
+		i = i + 1
+	end
+end
+
+local function getTopWidget(self, widgetList)
+	local topIndex, topWidget = -1, nil
+	for widget,_ in pairs(widgetList) do
+		local layerIndex = widget.layer and self.layers[widget.layer] or 0
+		local index = widget.drawIndex + layerIndex
+		if index > topIndex then
+			topIndex = index
+			topWidget = widget
+		end
+	end
+	return topWidget
+end
+
 local function setFocus(self, widget)
 	if widget == self.focusedWidget then  return  end
 	if self.focusedWidget then
@@ -59,22 +83,11 @@ local function mouseMoved(self, x, y, dx, dy)
 	return didHit
 end
 
-local function getTopWidget(widgetList)
-	local topIndex, topWidget = -1, nil
-	for widget,_ in pairs(widgetList) do
-		if widget.drawIndex > topIndex then
-			topIndex = widget.drawIndex
-			topWidget = widget
-		end
-	end
-	return topWidget
-end
-
 local function input(self, name, subName, change)
 	if name == "click" then
 		if change == 1 then
 			-- Press and focus the topmost hovered node.
-			local topWidget = getTopWidget(self.hoveredWidgets)
+			local topWidget = getTopWidget(self, self.hoveredWidgets)
 			if topWidget then
 				topWidget:press(self.mx, self.my)
 				setFocus(self, topWidget)
@@ -334,6 +347,8 @@ local function new(baseTheme)
 		mouseMoved = mouseMoved,
 		mx = 0, my = 0,
 		input = input,
+		registerLayers = registerLayers,
+		layers = {},
 		setFocus = setFocus,
 
 		makeButton = makeButton,
