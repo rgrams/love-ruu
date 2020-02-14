@@ -45,7 +45,7 @@ local function setFocus(self, widget)
 		self.focusedWidget:unfocus()
 	end
 	self.focusedWidget = widget
-	widget:focus()
+	if widget then  widget:focus()  end
 end
 
 local function mouseMoved(self, x, y, dx, dy)
@@ -171,9 +171,21 @@ local function input(self, name, subName, change)
 end
 
 local function setWidgetEnabled(self, widget, enabled)
-	-- TODO: Deal with things if a focused/hovered/pressed widget is disabled.
 	self.enabledWidgets[widget] = enabled or nil
 	widget.isEnabled = enabled
+
+	if not enabled then
+		self.hoveredWidgets[widget] = nil
+		if self.dragWidget == widget then  self.dragWidget = nil  end
+		if self.focusedWidget == widget then  setFocus(self, nil)  end
+		if widget.isHovered then  widget:unhover()  end
+		if widget.isPressed then  widget:release(true)  end
+	end
+end
+
+local function destroyWidget(self, widget)
+	setWidgetEnabled(self, widget, false)
+	self.allWidgets[widget] = nil
 end
 
 local function makeWidget(self, widgetType, obj, isEnabled, themeType, theme)
@@ -265,14 +277,12 @@ local function makeScrollArea(self, obj, isEnabled, ox, oy, scrollDist, nudgeDis
 end
 
 local function makeInputField(self, obj, textObj, isEnabled, editFunc, confirmFunc, placeholderText, themeType, theme)
-	placeholderText = placeholderText or ""
-
 	makeWidget(self, "InputField", obj, isEnabled, themeType, theme)
 	obj.textObj = textObj
-	textObj.text = placeholderText
+	textObj.text = placeholderText or textObj.text
 	obj.placeholderText = placeholderText
 	obj.editFunc, obj.confirmFunc = editFunc, confirmFunc
-	obj.text = ""
+	obj.text = placeholderText and "" or textObj.text
 	obj.theme[obj.themeType].init(obj)
 end
 
@@ -341,7 +351,6 @@ local function new(baseTheme)
 		enabledWidgets = {},
 		hoveredWidgets = {},
 		focusedWidget = nil,
-		pressedWidget = nil,
 		dragWidget = nil,
 		theme = baseTheme or defaultTheme,
 		mouseMoved = mouseMoved,
@@ -350,6 +359,9 @@ local function new(baseTheme)
 		registerLayers = registerLayers,
 		layers = {},
 		setFocus = setFocus,
+
+		setWidgetEnabled = setWidgetEnabled,
+		destroyWidget = destroyWidget,
 
 		makeButton = makeButton,
 		makeToggleButton = makeToggleButton,
