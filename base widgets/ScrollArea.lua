@@ -32,7 +32,7 @@ function ScrollArea.updateChildrenBounds(self)
 	b.lt, b.rt, b.top, b.bot, b.w, b.h = lt, rt, top, bot, w, h
 end
 
-function ScrollArea.draw(self)
+local function debugDraw(self)
 	local b = self.childBounds
 	if b.lt and b.rt then
 		love.graphics.setColor(1, 1, 1, 1)
