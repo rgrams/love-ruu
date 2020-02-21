@@ -39,22 +39,16 @@ local function getTopWidget(self, widgetList)
 	return topWidget
 end
 
-local function setFocus(self, widget)
-	if widget == self.focusedWidget then  return  end
-	if self.focusedWidget then
-		self.focusedWidget:unfocus()
-	end
-	self.focusedWidget = widget
-	if widget then  widget:focus()  end
-end
-
--- Takes an object.
--- Returns a sequence of ancestor objects that are Panels in child-parent order, or nil.
-local function getAncestorPanels(obj)
-	local ancestors
+-- Takes an object, a nonRecursive flag, and an optional ancestors table to add onto.
+-- Returns:
+--    A single ancestor object, if `nonRecursive` is true, or nil.
+--    A sequence of ancestor objects that are Panels in child-parent order, or nil.
+local function getAncestorPanels(obj, nonRecursive, ancestors)
+	if not obj then  return  end
 	local p = obj -- Include the starting obj if it's a panel (making it panel #1).
 	while p ~= obj.tree do
-		if p.widgetType and p.widgetType == "Panel" then
+		if p.widgetType == "Panel" then
+			if nonRecursive then  return p  end
 			ancestors = ancestors or {}
 			table.insert(ancestors, p)
 		end
@@ -64,19 +58,44 @@ local function getAncestorPanels(obj)
 	return ancestors
 end
 
+local function setPanelsFocused(panels, focused)
+	if focused then
+		for i=#panels,1,-1 do
+			panels[i]:focus(i)
+		end
+	else
+		for i=#panels,1,-1 do
+			panels[i]:unfocus()
+			panels[i] = nil
+		end
+	end
+end
+
+local function setFocus(self, widget)
+	if widget == self.focusedWidget then  return  end
+	if self.focusedWidget then
+		self.focusedWidget:unfocus()
+	end
+	self.focusedWidget = widget
+	if widget then
+		widget:focus()
+
+		local firstAncestorPanel = getAncestorPanels(widget, true)
+		if self.focusedPanels[1] ~= firstAncestorPanel then
+			setPanelsFocused(self.focusedPanels, false)
+			self.focusedPanels[1] = firstAncestorPanel
+			getAncestorPanels(firstAncestorPanel.parent, false, self.focusedPanels)
+			setPanelsFocused(self.focusedPanels, true)
+		end
+	else
+		setPanelsFocused(self.focusedPanels, false)
+	end
+end
+
 local function focusAtCursor(self)
 	local topWidget = getTopWidget(self, self.hoveredWidgets)
 	if topWidget then
 		setFocus(self, topWidget)
-
-		if self.focusedPanels then
-			for i,panel in ipairs(self.focusedPanels) do  panel:unfocus()  end
-		end
-		local ancestorPanels = getAncestorPanels(topWidget)
-		if ancestorPanels then
-			for i,panel in ipairs(ancestorPanels) do  panel:focus(i)  end
-		end
-		self.focusedPanels = ancestorPanels
 	end
 	return topWidget
 end
@@ -380,7 +399,7 @@ local function new(baseTheme)
 		enabledWidgets = {},
 		hoveredWidgets = {},
 		focusedWidget = nil,
-		focusedPanels = nil,
+		focusedPanels = {},
 		dragWidget = nil,
 		theme = baseTheme or defaultTheme,
 		mouseMoved = mouseMoved,
