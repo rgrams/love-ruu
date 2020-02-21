@@ -48,6 +48,12 @@ local function setFocus(self, widget)
 	if widget then  widget:focus()  end
 end
 
+local function focusAtCursor(self)
+	local topWidget = getTopWidget(self, self.hoveredWidgets)
+	if topWidget then  setFocus(self, topWidget)  end
+	return topWidget
+end
+
 local function mouseMoved(self, x, y, dx, dy)
 	local didHit = false
 	self.mx, self.my = x, y
@@ -87,15 +93,12 @@ local function input(self, name, subName, change)
 	if name == "click" then
 		if change == 1 then
 			-- Press and focus the topmost hovered node.
-			local topWidget = getTopWidget(self, self.hoveredWidgets)
+			local topWidget = focusAtCursor(self)
 			if topWidget then
 				topWidget:press(self.mx, self.my)
-				setFocus(self, topWidget)
-				if topWidget.isDraggable then
-					self.dragWidget = topWidget
-				end
-				return true
+				if topWidget.isDraggable then  self.dragWidget = topWidget  end
 			end
+			return topWidget
 		elseif change == -1 then
 			-- TODO: Separate keyboard pressed and mouse pressed widgets?
 			--       Only release mouse pressed widget?
