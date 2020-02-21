@@ -48,9 +48,36 @@ local function setFocus(self, widget)
 	if widget then  widget:focus()  end
 end
 
+-- Takes an object.
+-- Returns a sequence of ancestor objects that are Panels in child-parent order, or nil.
+local function getAncestorPanels(obj)
+	local ancestors
+	local p = obj -- Include the starting obj if it's a panel (making it panel #1).
+	while p ~= obj.tree do
+		if p.widgetType and p.widgetType == "Panel" then
+			ancestors = ancestors or {}
+			table.insert(ancestors, p)
+		end
+		p = p.parent
+		if not p then  break  end
+	end
+	return ancestors
+end
+
 local function focusAtCursor(self)
 	local topWidget = getTopWidget(self, self.hoveredWidgets)
-	if topWidget then  setFocus(self, topWidget)  end
+	if topWidget then
+		setFocus(self, topWidget)
+
+		if self.focusedPanels then
+			for i,panel in ipairs(self.focusedPanels) do  panel:unfocus()  end
+		end
+		local ancestorPanels = getAncestorPanels(topWidget)
+		if ancestorPanels then
+			for i,panel in ipairs(ancestorPanels) do  panel:focus(i)  end
+		end
+		self.focusedPanels = ancestorPanels
+	end
 	return topWidget
 end
 
@@ -85,7 +112,6 @@ local function mouseMoved(self, x, y, dx, dy)
 			end
 		end
 	end
-
 	return didHit
 end
 
@@ -354,6 +380,7 @@ local function new(baseTheme)
 		enabledWidgets = {},
 		hoveredWidgets = {},
 		focusedWidget = nil,
+		focusedPanels = nil,
 		dragWidget = nil,
 		theme = baseTheme or defaultTheme,
 		mouseMoved = mouseMoved,
