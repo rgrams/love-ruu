@@ -104,10 +104,10 @@ local function mouseMoved(self, x, y, dx, dy)
 	local didHit = false
 	self.mx, self.my = x, y
 
-	if self.dragWidget then
+	if self.drags then
 		didHit = true
-		if self.dragWidget.drag then
-			self.dragWidget:drag(dx, dy)
+		for i,drag in ipairs(self.drags) do
+			drag.obj:drag(dx, dy, drag.type)
 		end
 	end
 	-- Still hit-check all widgets while dragging, for scroll areas and drag-and-drop.
@@ -134,6 +134,37 @@ local function mouseMoved(self, x, y, dx, dy)
 	return didHit
 end
 
+-- Starts a drag of a certain type for a specific object.
+local function startDrag(self, obj, dragType)
+	if obj.isDraggable then
+		self.drags = self.drags or {}
+		local drag = { obj = obj, type = dragType }
+		table.insert(self.drags, drag)
+	end
+end
+
+-- Stop all drags of the specified type.
+local function stopDrag(self, dragType)
+	if self.drags then
+		for i=#self.drags,1,-1 do
+			local drag = self.drags[i]
+			if drag.type == dragType then  self.drags[i] = nil  end
+		end
+		if #self.drags == 0 then  self.drags = nil  end
+	end
+end
+
+-- Stop all drags for a specific objects, regardless of dragType.
+local function stopDragObj(self, obj)
+	if self.drags then
+		for i=#self.drags,1,-1 do
+			local drag = self.drags[i]
+			if drag.obj == obj then  self.drags[i] = nil  end
+		end
+		if #self.drags == 0 then  self.drags = nil  end
+	end
+end
+
 local function input(self, name, subName, change)
 	if name == "click" then
 		if change == 1 then
@@ -141,7 +172,7 @@ local function input(self, name, subName, change)
 			local topWidget = focusAtCursor(self)
 			if topWidget then
 				topWidget:press(self.mx, self.my)
-				if topWidget.isDraggable then  self.dragWidget = topWidget  end
+				startDrag(self, topWidget, nil) -- `nil` == default dragType.
 			end
 			return topWidget
 		elseif change == -1 then
@@ -149,8 +180,8 @@ local function input(self, name, subName, change)
 			--       Only release mouse pressed widget?
 			--       Allow mouse to release keyboard pressed widget?
 
+			stopDrag(self, nil) -- `nil` == default dragType.
 			-- Release hovered widgets if they are pressed
-			self.dragWidget = nil
 			for widget,_ in pairs(self.hoveredWidgets) do
 				if widget.isPressed then
 					widget:release(false, self.mx, self.my)
@@ -224,7 +255,7 @@ local function setWidgetEnabled(self, widget, enabled)
 
 	if not enabled then
 		self.hoveredWidgets[widget] = nil
-		if self.dragWidget == widget then  self.dragWidget = nil  end
+		stopDragObj(self, widget)
 		if self.focusedWidget == widget then  setFocus(self, nil)  end
 		if widget.isHovered then  widget:unhover()  end
 		if widget.isPressed then  widget:release(true)  end
@@ -400,7 +431,10 @@ local function new(baseTheme)
 		hoveredWidgets = {},
 		focusedWidget = nil,
 		focusedPanels = {},
-		dragWidget = nil,
+		drags = nil,
+		startDrag = startDrag,
+		stopDrag = stopDrag,
+		stopDragObj = stopDragObj,
 		theme = baseTheme or defaultTheme,
 		mouseMoved = mouseMoved,
 		mx = 0, my = 0,
@@ -408,6 +442,7 @@ local function new(baseTheme)
 		registerLayers = registerLayers,
 		layers = {},
 		setFocus = setFocus,
+		focusAtCursor = focusAtCursor,
 
 		setWidgetEnabled = setWidgetEnabled,
 		destroyWidget = destroyWidget,

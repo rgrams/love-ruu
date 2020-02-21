@@ -22,7 +22,8 @@ function SliderHandle.updatePos(self, dx, dy, isLocal)
 	end
 end
 
-function SliderHandle.drag(self, dx, dy, isLocal)
+function SliderHandle.drag(self, dx, dy, dragType, isLocal)
+	if dragType then  return  end -- Only respond to the default drag type.
 	self:updatePos(dx, dy, isLocal)
 
 	self.fraction = (self.parentOffsetX - self.offset + self.length/2) / self.length
@@ -40,7 +41,7 @@ function SliderHandle.getFocusNeighbor(self, dir)
 	local x, y = bar._to_world.x + dirVec[1], bar._to_world.y + dirVec[2]
 	x, y = bar:toLocal(x, y)
 	if math.abs(x) > COS45 then -- Input direction is roughly aligned with slider rotation.
-		self:drag(x * self.nudgeDist, 0, true)
+		self:drag(x * self.nudgeDist, 0, nil, true)
 		return false
 	else
 		return self.neighbor[dir]

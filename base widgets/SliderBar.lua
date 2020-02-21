@@ -10,9 +10,9 @@ function SliderBar.press(self, mx, my, isKeyboard)
 		local handleX = self.handle.parentOffsetX
 		local localClickX, localClickY = self:toLocal(mx, my)
 		if localClickX > handleX then
-			self.handle:drag(self.handle.barClickDist, 0, true)
+			self.handle:drag(self.handle.barClickDist, 0, nil, true)
 		elseif localClickX < handleX then
-			self.handle:drag(-self.handle.barClickDist, 0, true)
+			self.handle:drag(-self.handle.barClickDist, 0, nil, true)
 		end
 	end
 	SliderBar.super.press(self, mx, my)
@@ -26,7 +26,7 @@ function SliderBar.getFocusNeighbor(self, dir)
 	local x, y = self._to_world.x + dirVec[1], self._to_world.y + dirVec[2]
 	x, y = self:toLocal(x, y)
 	if math.abs(x) > COS45 then -- Input direction is roughly aligned with slider rotation.
-		self.handle:drag(x * self.handle.nudgeDist, 0, true)
+		self.handle:drag(x * self.handle.nudgeDist, 0, nil, true)
 		return false
 	else
 		return self.handle.neighbor[dir]
