@@ -107,27 +107,23 @@ local function mouseMoved(self, x, y, dx, dy)
 	if self.drags then
 		didHit = true
 		for i,drag in ipairs(self.drags) do
-			drag.obj:drag(dx, dy, drag.type)
+			drag.object:drag(dx, dy, drag.type)
 		end
 	end
 	-- Still hit-check all widgets while dragging, for scroll areas and drag-and-drop.
 	for widget,_ in pairs(self.enabledWidgets) do
-		if widget ~= self.dragWidget then
-			if widget:hitCheck(x, y) then
-				didHit = true
-				if not widget.isHovered then
-					self.hoveredWidgets[widget] = true
-					-- Don't hover while dragging
-					-- TODO: will want to hover while drag-and-dropping.
-					if not self.dragWidget then
-						widget:hover()
-					end
-				end
-			else -- Will get added to the list but not actually hovered if dragging a widget.
-				self.hoveredWidgets[widget] = nil
-				if widget.isHovered then
-					widget:unhover()
-				end
+		-- Don't need to hitCheck dragged widgets, but make sure they are hovered.
+		if self.objDragCount[widget] or widget:hitCheck(x, y) then
+			didHit = true
+			if not widget.isHovered then
+				self.hoveredWidgets[widget] = true
+				widget:hover()
+				-- TODO: separate callback for hover while drag-and-dropping.
+			end
+		else
+			self.hoveredWidgets[widget] = nil
+			if widget.isHovered then
+				widget:unhover()
 			end
 		end
 	end
@@ -137,29 +133,28 @@ end
 -- Starts a drag of a certain type for a specific object.
 local function startDrag(self, obj, dragType)
 	if obj.isDraggable then
+		local dragCount = (self.objDragCount[obj] or 0) + 1
+		self.objDragCount[obj] = dragCount
 		self.drags = self.drags or {}
-		local drag = { obj = obj, type = dragType }
+		local drag = { object = obj, type = dragType }
 		table.insert(self.drags, drag)
 	end
 end
 
--- Stop all drags of the specified type.
-local function stopDrag(self, dragType)
+-- Stop drags by some criteria: either "type" or "object".
+--   (if drag[key] == `val` then  remove the drag.)
+--   By default: dragType == nil (the default dragType).
+local function stopDrag(self, key, val)
+	key = key or "type"
 	if self.drags then
 		for i=#self.drags,1,-1 do
 			local drag = self.drags[i]
-			if drag.type == dragType then  self.drags[i] = nil  end
-		end
-		if #self.drags == 0 then  self.drags = nil  end
-	end
-end
-
--- Stop all drags for a specific objects, regardless of dragType.
-local function stopDragObj(self, obj)
-	if self.drags then
-		for i=#self.drags,1,-1 do
-			local drag = self.drags[i]
-			if drag.obj == obj then  self.drags[i] = nil  end
+			if drag[key] == val then
+				self.drags[i] = nil
+				local dragCount = self.objDragCount[drag.object] - 1
+				if dragCount <= 0 then  self.objDragCount[drag.object] = nil
+				else self.objDragCount[drag.object] = dragCount  end
+			end
 		end
 		if #self.drags == 0 then  self.drags = nil  end
 	end
@@ -180,7 +175,7 @@ local function input(self, name, subName, change)
 			--       Only release mouse pressed widget?
 			--       Allow mouse to release keyboard pressed widget?
 
-			stopDrag(self, nil) -- `nil` == default dragType.
+			stopDrag(self) -- Stop default drags.
 			-- Release hovered widgets if they are pressed
 			for widget,_ in pairs(self.hoveredWidgets) do
 				if widget.isPressed then
@@ -255,7 +250,7 @@ local function setWidgetEnabled(self, widget, enabled)
 
 	if not enabled then
 		self.hoveredWidgets[widget] = nil
-		stopDragObj(self, widget)
+		stopDrag(self, "object", widget)
 		if self.focusedWidget == widget then  setFocus(self, nil)  end
 		if widget.isHovered then  widget:unhover()  end
 		if widget.isPressed then  widget:release(true)  end
@@ -432,9 +427,9 @@ local function new(baseTheme)
 		focusedWidget = nil,
 		focusedPanels = {},
 		drags = nil,
+		objDragCount = {},
 		startDrag = startDrag,
 		stopDrag = stopDrag,
-		stopDragObj = stopDragObj,
 		theme = baseTheme or defaultTheme,
 		mouseMoved = mouseMoved,
 		mx = 0, my = 0,
