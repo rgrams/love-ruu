@@ -120,6 +120,9 @@ local function mouseMoved(self, x, y, dx, dy)
 				widget:hover()
 				-- TODO: separate callback for hover while drag-and-dropping.
 			end
+			if widget.mouseMovedFunc then
+				widget:mouseMovedFunc(x, y, dx, dy)
+			end
 		else
 			self.hoveredWidgets[widget] = nil
 			if widget.isHovered then
