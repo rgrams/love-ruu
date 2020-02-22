@@ -45,15 +45,15 @@ end
 --    A sequence of ancestor objects that are Panels in child-parent order, or nil.
 local function getAncestorPanels(obj, nonRecursive, ancestors)
 	if not obj then  return  end
-	local p = obj -- Include the starting obj if it's a panel (making it panel #1).
+	local p = obj.parent -- Don't include starting object: keep current focus and ancestors separate.
 	while p ~= obj.tree do
+		if not p then  break  end
 		if p.widgetType == "Panel" then
 			if nonRecursive then  return p  end
 			ancestors = ancestors or {}
 			table.insert(ancestors, p)
 		end
 		p = p.parent
-		if not p then  break  end
 	end
 	return ancestors
 end
@@ -78,8 +78,6 @@ local function setFocus(self, widget)
 	end
 	self.focusedWidget = widget
 	if widget then
-		widget:focus()
-
 		local firstAncestorPanel = getAncestorPanels(widget, true)
 		if self.focusedPanels[1] ~= firstAncestorPanel then
 			setPanelsFocused(self.focusedPanels, false)
@@ -89,6 +87,8 @@ local function setFocus(self, widget)
 				setPanelsFocused(self.focusedPanels, true)
 			end
 		end
+		-- New widget may have been an old ancestor panel, so focused it after panels.
+		widget:focus()
 	else
 		setPanelsFocused(self.focusedPanels, false)
 	end
@@ -255,8 +255,11 @@ local function setWidgetEnabled(self, widget, enabled)
 
 	if not enabled then
 		self.hoveredWidgets[widget] = nil
-		stopDrag(self, "object", widget)
-		if self.focusedWidget == widget then  setFocus(self, nil)  end
+		if self.objDragCount[widget] then  stopDrag(self, "object", widget)  end
+		if self.focusedWidget == widget then
+			widget:unfocus()
+			self.focusedWidget = nil -- Just remove it, don't change ancestor panel focus.
+		end
 		if widget.isHovered then  widget:unhover()  end
 		if widget.isPressed then  widget:release(true)  end
 	end

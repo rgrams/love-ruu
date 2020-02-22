@@ -6,7 +6,7 @@ local Panel = Button:extend()
 -- Mostly the same as Button.
 
 function Panel.focus(self, index)
-	if index then  self.panelIndex = index  end -- For drawing.
+	self.panelIndex = index or 1
 	self.isFocused = true
 	self.theme[self.themeType].focus(self)
 end
