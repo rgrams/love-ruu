@@ -15,7 +15,7 @@ function SliderBar.press(self, mx, my, isKeyboard)
 			self.handle:drag(-self.handle.barClickDist, 0, nil, true)
 		end
 	end
-	SliderBar.super.press(self, mx, my)
+	SliderBar.super.press(self, mx, my, isKeyboard)
 end
 
 local dirs = { up = {0, -1}, down = {0, 1}, left = {-1, 0}, right = {1, 0} }

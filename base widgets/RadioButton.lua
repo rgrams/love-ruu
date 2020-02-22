@@ -14,7 +14,7 @@ function RadioButton.release(self, dontFire, mx, my, isKeyboard)
 				btn.isChecked = false
 			end
 		end
-		if self.releaseFunc then  self:releaseFunc(mx, my)  end
+		if self.releaseFunc then  self:releaseFunc(mx, my, isKeyboard)  end
 	end
 	self.theme[self.themeType].release(self, dontFire, mx, my)
 end

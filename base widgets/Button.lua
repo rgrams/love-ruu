@@ -28,13 +28,13 @@ end
 function Button.press(self, mx, my, isKeyboard)
 	self.isPressed = true
 	self.theme[self.themeType].press(self, mx, my)
-	if self.pressFunc then  self:pressFunc(mx, my)  end
+	if self.pressFunc then  self:pressFunc(mx, my, isKeyboard)  end
 end
 
 function Button.release(self, dontFire, mx, my, isKeyboard)
 	self.isPressed = false
 	self.theme[self.themeType].release(self, dontFire, mx, my)
-	if self.releaseFunc and not dontFire then  self:releaseFunc(mx, my)  end
+	if self.releaseFunc and not dontFire then  self:releaseFunc(mx, my, isKeyboard)  end
 end
 
 function Button.getFocusNeighbor(self, dir)
