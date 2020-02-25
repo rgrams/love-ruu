@@ -246,6 +246,12 @@ local function input(self, name, subName, change)
 			widget:backspace()
 			return true
 		end
+	elseif name == "delete" then
+		local widget = self.focusedWidget
+		if widget and widget.delete then
+			widget:delete()
+			return true
+		end
 	end
 end
 
@@ -360,11 +366,13 @@ end
 
 local function makeInputField(self, obj, textObj, isEnabled, editFunc, confirmFunc, placeholderText, themeType, theme)
 	makeWidget(self, "InputField", obj, isEnabled, themeType, theme)
-	obj.textObj = textObj
+	obj.label = textObj
 	textObj.text = placeholderText or textObj.text
 	obj.placeholderText = placeholderText
 	obj.editFunc, obj.confirmFunc = editFunc, confirmFunc
 	obj.text = placeholderText and "" or textObj.text
+	obj.cursorI, obj.cursorX = 0, 0
+	obj:setCursorPos()
 	obj.theme[obj.themeType].init(obj)
 end
 
