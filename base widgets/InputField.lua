@@ -33,6 +33,7 @@ function InputField.unfocus(self)
 	self.isFocused = false
 	self.theme[self.themeType].unfocus(self)
 	if self.isPressed then  self:release(true)  end -- Release without firing.
+	if self.confirmFunc then  self:confirmFunc()  end
 end
 
 -- Update cursor pixel position, etc.
