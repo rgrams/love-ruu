@@ -3,11 +3,27 @@ local basePath = (...):gsub('[^%.]+$', '')
 local Button = require(basePath .. "Button")
 local InputField = Button:extend()
 
+local function clamp(x, min, max)
+	return x > min and (x < max and x or max) or min
+end
+
+function InputField.setSelection(self, startI, endI)
+	self.selection.i1, self.selection.i2 = startI, endI
+	if startI and endI then
+		local left = -self.w/2 + self.padX
+		self.preCursorText = string.sub(self.text, 0, self.cursorI)
+		self.cursorX = self.label.font:getWidth(self.preCursorText)
+		local preText = string.sub(self.text, 0, startI)
+		self.selection.x1 = self.label.font:getWidth(preText)
+		local toEndText = string.sub(self.text, 0, endI)
+		self.selection.x2 = self.label.font:getWidth(toEndText)
+	end
+end
+
 function InputField.focus(self)
 	if not self.isFocused then
-		-- TODO: Select all.
-		-- Set cursor to end.
-		self:setCursorPos(#self.text)
+		self:setSelection(0, #self.text) -- Select all.
+		self:setCursorPos(#self.text) -- Set cursor to end.
 	end
 	self.isFocused = true
 	self.theme[self.themeType].focus(self)
@@ -19,17 +35,22 @@ function InputField.unfocus(self)
 	if self.isPressed then  self:release(true)  end -- Release without firing.
 end
 
+-- Update cursor pixel position, etc.
+local function updateCursorX(self)
+	self.cursorX = self.label.font:getWidth(self.preCursorText)
+	-- TODO: Update mask scrolling.
+end
+
 function InputField.setCursorPos(self, absolute, delta)
 	-- Modify cursor index.
 	delta = delta or 0
 	absolute = (absolute or self.cursorI) + delta
-	self.cursorI = math.max(0, math.min(#self.text, absolute))
+	self.cursorI = clamp(absolute, 0, #self.text)
 	-- Re-slice text around cursor.
 	self.preCursorText = string.sub(self.text, 0, self.cursorI)
 	self.postCursorText = string.sub(self.text, self.cursorI + 1)
-	-- Update cursor pixel position, etc.
-	self.cursorX = self.label.font:getWidth(self.preCursorText)
-	-- TODO: Update mask scrolling.
+
+	updateCursorX(self)
 end
 
 function InputField.setText(self, text, isPlaceholder)
@@ -39,20 +60,48 @@ function InputField.setText(self, text, isPlaceholder)
 	self.theme[self.themeType].setText(self, isPlaceholder)
 end
 
+local function replaceSelection(self, replaceWith)
+	replaceWith = replaceWith or ""
+	local cursorPos = self.selection.i1 + #replaceWith
+	self.preCursorText = string.sub(self.text, 0, self.selection.i1)
+	self.preCursorText = self.preCursorText .. replaceWith
+	self.postCursorText = string.sub(self.text, self.selection.i2 + 1)
+	self.selection.i1, self.selection.i2 = nil, nil
+
+	self:setText(self.preCursorText .. self.postCursorText)
+	self.cursorI = clamp(cursorPos, 0, #self.text)
+	updateCursorX(self)
+end
+
 function InputField.textInput(self, char)
-	self:setText(self.preCursorText .. char .. self.postCursorText)
-	self:setCursorPos(nil, 1)
+	if self.selection.i1 then
+		replaceSelection(self, char)
+	else
+		self.preCursorText = self.preCursorText .. char
+		self:setText(self.preCursorText .. self.postCursorText)
+		self.cursorI = clamp(self.cursorI + 1, 0, #self.text)
+		updateCursorX(self)
+	end
 end
 
 function InputField.backspace(self)
-	self.preCursorText = string.sub(self.preCursorText, 1, -2)
-	self:setText(self.preCursorText .. self.postCursorText)
-	self:setCursorPos(nil, -1)
+	if self.selection.i1 then
+		replaceSelection(self)
+	else
+		self.preCursorText = string.sub(self.preCursorText, 1, -2)
+		self:setText(self.preCursorText .. self.postCursorText)
+		self.cursorI = clamp(self.cursorI - 1, 0, #self.text)
+		updateCursorX(self)
+	end
 end
 
 function InputField.delete(self)
-	self.postCursorText = string.sub(self.postCursorText, 2)
-	self:setText(self.preCursorText .. self.postCursorText)
+	if self.selection.i1 then
+		replaceSelection(self)
+	else
+		self.postCursorText = string.sub(self.postCursorText, 2)
+		self:setText(self.preCursorText .. self.postCursorText)
+	end
 end
 
 function InputField.release(self, dontFire, mx, my, isKeyboard)
@@ -62,9 +111,21 @@ end
 
 function InputField.getFocusNeighbor(self, dir)
 	if dir == "left" then
-		self:setCursorPos(nil, -1)
+		if self.selection.i1 then
+			local cursorPos = self.selection.i1
+			self.selection.i1, self.selection.i2 = nil, nil
+			self:setCursorPos(cursorPos)
+		else
+			self:setCursorPos(nil, -1)
+		end
 	elseif dir == "right" then
-		self:setCursorPos(nil, 1)
+		if self.selection.i1 then
+			local cursorPos = self.selection.i2
+			self.selection.i1, self.selection.i2 = nil, nil
+			self:setCursorPos(cursorPos)
+		else
+			self:setCursorPos(nil, 1)
+		end
 	else
 		return self.neighbor[dir]
 	end

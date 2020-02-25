@@ -372,6 +372,7 @@ local function makeInputField(self, obj, textObj, isEnabled, editFunc, confirmFu
 	obj.editFunc, obj.confirmFunc = editFunc, confirmFunc
 	obj.text = placeholderText and "" or textObj.text
 	obj.cursorI, obj.cursorX = 0, 0
+	obj.selection = {}
 	obj:setCursorPos()
 	obj.theme[obj.themeType].init(obj)
 end
