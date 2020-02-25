@@ -209,10 +209,10 @@ local function input(self, name, subName, change)
 		local widget = self.focusedWidget
 		if widget then
 			local neighbor = widget:getFocusNeighbor(subName)
-			if neighbor then
-				setFocus(self, neighbor)
+			if neighbor == 1 then -- No neighbor, but used input.
 				return true
-			elseif neighbor == false then -- No neighbor, but used input.
+			elseif neighbor then
+				setFocus(self, neighbor)
 				return true
 			end
 		end

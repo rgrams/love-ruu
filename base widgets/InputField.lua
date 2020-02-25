@@ -118,6 +118,7 @@ function InputField.getFocusNeighbor(self, dir)
 		else
 			self:setCursorPos(nil, -1)
 		end
+		return 1 -- Consume input.
 	elseif dir == "right" then
 		if self.selection.i1 then
 			local cursorPos = self.selection.i2
@@ -126,6 +127,7 @@ function InputField.getFocusNeighbor(self, dir)
 		else
 			self:setCursorPos(nil, 1)
 		end
+		return 1 -- Consume input.
 	else
 		return self.neighbor[dir]
 	end
