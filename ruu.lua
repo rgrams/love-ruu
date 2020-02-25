@@ -436,6 +436,19 @@ local function mapNeighbors(self, map)
 	end
 end
 
+local function mapNextPrev(self, map)
+	if #map <= 1 then  return  end
+
+	map = { map } -- Make into a 2D array.
+
+	for i,widget in ipairs(map[1]) do
+		if widget then
+			widget.neighbor.next = findNextInMap(widget, map, i, 1, "x", 1)
+			widget.neighbor.prev = findNextInMap(widget, map, i, 1, "x", -1)
+		end
+	end
+end
+
 local function new(baseTheme)
 	local self = {
 		allWidgets = {},
@@ -468,6 +481,7 @@ local function new(baseTheme)
 		makePanel = makePanel,
 
 		mapNeighbors = mapNeighbors,
+		mapNextPrev = mapNextPrev,
 
 		defaultSliderNudgeDist = 5,
 		defaultSliderBarClickDist = 25,
