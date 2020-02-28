@@ -239,16 +239,16 @@ local function input(self, inputType, action, value, change, isRepeat, x, y, dx,
 	elseif action == "text" then
 		local widget = self.focusedWidget
 		if widget and widget.textInput then
-			widget:textInput(change)
+			widget:textInput(value)
 			return true
 		end
-	elseif action == "backspace" then
+	elseif action == "backspace" and value == 1 then
 		local widget = self.focusedWidget
 		if widget and widget.backspace then
 			widget:backspace()
 			return true
 		end
-	elseif action == "delete" then
+	elseif action == "delete" and value == 1 then
 		local widget = self.focusedWidget
 		if widget and widget.delete then
 			widget:delete()
