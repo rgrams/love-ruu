@@ -83,7 +83,7 @@ local function setFocus(self, widget)
 			setPanelsFocused(self.focusedPanels, false)
 			if firstAncestorPanel then -- Of course will be `nil` if there isn't one.
 				self.focusedPanels[1] = firstAncestorPanel
-				getAncestorPanels(firstAncestorPanel.parent, false, self.focusedPanels)
+				getAncestorPanels(firstAncestorPanel, false, self.focusedPanels)
 				setPanelsFocused(self.focusedPanels, true)
 			end
 		end
