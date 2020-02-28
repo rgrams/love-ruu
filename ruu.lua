@@ -259,14 +259,15 @@ local function input(self, inputType, action, value, change, isRepeat, x, y, dx,
 	-- For any unused input:
 	if inputType == "focus" then
 		if self.focusedWidget then
-			self.focusedWidget:call("input", action, value, change, isRepeat)
+			self.focusedWidget:call("ruuinput", action, value, change, isRepeat)
 		end
 		for i,panel in ipairs(self.focusedPanels) do
-			panel:call("input", action, value, change, isRepeat)
+			-- Call a separate function than normal input so we can't get infinite loops.
+			panel:call("ruuinput", action, value, change, isRepeat)
 		end
 	elseif inputType == "hover" then
 		for widget,_ in ipairs(self.hoveredWidgets) do
-			widget:call("input", action, value, change, isRepeat)
+			widget:call("ruuinput", action, value, change, isRepeat)
 		end
 	end
 end
