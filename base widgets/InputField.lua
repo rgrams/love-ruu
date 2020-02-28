@@ -29,6 +29,7 @@ function InputField.focus(self)
 	if not self.isFocused then
 		self:setSelection(0, #self.text) -- Select all.
 		self:setCursorPos(#self.text) -- Set cursor to end.
+		self.oldText = self.text -- Save in case of cancel.
 	end
 	self.isFocused = true
 	self.theme[self.themeType].focus(self)
@@ -38,7 +39,7 @@ function InputField.unfocus(self)
 	self.isFocused = false
 	self.theme[self.themeType].unfocus(self)
 	if self.isPressed then  self:release(true)  end -- Release without firing.
-	if self.confirmFunc then  self:confirmFunc()  end
+	if self.confirmFunc and self.text ~= self.oldText then  self:confirmFunc()  end
 end
 
 -- Update cursor pixel position, etc.
@@ -112,17 +113,18 @@ end
 
 function InputField.release(self, dontFire, mx, my, isKeyboard)
 	self.super.release(self, dontFire, mx, my, isKeyboard)
-	if isKeyboard and not dontFire and self.confirmFunc then  self:confirmFunc()  end
+	if isKeyboard and not dontFire and self.confirmFunc then
+		if self.text ~= self.oldText then  self:confirmFunc()  end
+	end
 end
 
-local function moveCursor(self, dir)
-	dir = dir == "left" and -1 or 1
+local function moveCursor(self, delta, absolute)
 	if self.ruu.getInput("shift") == 1 then
 		-- Find the selection direction - check which selection index is at the cursor.
 		local key = self.selection.i1 == self.cursorI and "i1" or "i2"
 		local otherKey = key == "i1" and "i2" or "i1"
 		local oldCursorI = self.cursorI
-		self:setCursorPos(nil, dir) -- Move cursor to the left.
+		self:setCursorPos(absolute, delta)
 		self.selection[key] = self.cursorI -- Move the correct end of the selection.
 		if not self.selection[otherKey] then -- Starting a new selection.
 			self.selection[otherKey] = oldCursorI
@@ -130,25 +132,42 @@ local function moveCursor(self, dir)
 		self:setSelection(self.selection.i1, self.selection.i2) -- Updates the selection x and y coords.
 	else
 		if self.selection.i1 then
-			local key = dir == -1 and "i1" or "i2" -- Choose selection end in movement direction.
-			local cursorPos = self.selection[key]
+			local cursorI
+			if delta and math.abs(delta) == 1 then -- If it's only one move, jump to end of selection.
+				local key = delta < 0 and "i1" or "i2" -- Choose selection end in movement direction.
+				cursorI = self.selection[key]
+			else -- Larger move, ignore selection and follow the user input.
+				cursorI = absolute
+			end
 			self.selection.i1, self.selection.i2 = nil, nil
-			self:setCursorPos(cursorPos)
+			self:setCursorPos(cursorI, delta)
 		else
-			self:setCursorPos(nil, dir)
+			self:setCursorPos(absolute, delta)
 		end
 	end
 end
 
 function InputField.getFocusNeighbor(self, dir)
 	if dir == "left" then
-		moveCursor(self, dir)
+		moveCursor(self, -1)
 		return 1 -- Consume input.
 	elseif dir == "right" then
-		moveCursor(self, dir)
+		moveCursor(self, 1)
 		return 1 -- Consume input.
 	else
 		return self.neighbor[dir]
+	end
+end
+
+function InputField.ruuinput(self, action, value, change, isRepeat)
+	if action == "home" and change == 1 then
+		moveCursor(self, nil, 0)
+	elseif action == "end" and change == 1 then
+		moveCursor(self, nil, #self.text)
+	elseif action == "cancel" and change == 1 then
+		self.text, self.label.text = self.oldText, self.oldText
+		self.isFocused = false
+		self:focus()
 	end
 end
 
