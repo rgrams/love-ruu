@@ -8,15 +8,20 @@ local function clamp(x, min, max)
 end
 
 function InputField.setSelection(self, startI, endI)
-	self.selection.i1, self.selection.i2 = startI, endI
 	if startI and endI then
+		if startI == endI then -- Nothing actually selected
+			self.selection.i1, self.selection.i2 = nil, nil
+			return
+		end
+		local startI, endI = math.min(startI, endI), math.max(startI, endI) -- Make sure they're in order.
+		self.selection.i1, self.selection.i2 = startI, endI
 		local left = -self.w/2 + self.padX
-		self.preCursorText = string.sub(self.text, 0, self.cursorI)
-		self.cursorX = self.label.font:getWidth(self.preCursorText)
 		local preText = string.sub(self.text, 0, startI)
 		self.selection.x1 = self.label.font:getWidth(preText)
 		local toEndText = string.sub(self.text, 0, endI)
 		self.selection.x2 = self.label.font:getWidth(toEndText)
+	else
+		self.selection.i1, self.selection.i2 = nil, nil
 	end
 end
 
@@ -110,24 +115,37 @@ function InputField.release(self, dontFire, mx, my, isKeyboard)
 	if isKeyboard and not dontFire and self.confirmFunc then  self:confirmFunc()  end
 end
 
+local function moveCursor(self, dir)
+	dir = dir == "left" and -1 or 1
+	if self.ruu.getInput("shift") == 1 then
+		-- Find the selection direction - check which selection index is at the cursor.
+		local key = self.selection.i1 == self.cursorI and "i1" or "i2"
+		local otherKey = key == "i1" and "i2" or "i1"
+		local oldCursorI = self.cursorI
+		self:setCursorPos(nil, dir) -- Move cursor to the left.
+		self.selection[key] = self.cursorI -- Move the correct end of the selection.
+		if not self.selection[otherKey] then -- Starting a new selection.
+			self.selection[otherKey] = oldCursorI
+		end
+		self:setSelection(self.selection.i1, self.selection.i2) -- Updates the selection x and y coords.
+	else
+		if self.selection.i1 then
+			local key = dir == -1 and "i1" or "i2" -- Choose selection end in movement direction.
+			local cursorPos = self.selection[key]
+			self.selection.i1, self.selection.i2 = nil, nil
+			self:setCursorPos(cursorPos)
+		else
+			self:setCursorPos(nil, dir)
+		end
+	end
+end
+
 function InputField.getFocusNeighbor(self, dir)
 	if dir == "left" then
-		if self.selection.i1 then
-			local cursorPos = self.selection.i1
-			self.selection.i1, self.selection.i2 = nil, nil
-			self:setCursorPos(cursorPos)
-		else
-			self:setCursorPos(nil, -1)
-		end
+		moveCursor(self, dir)
 		return 1 -- Consume input.
 	elseif dir == "right" then
-		if self.selection.i1 then
-			local cursorPos = self.selection.i2
-			self.selection.i1, self.selection.i2 = nil, nil
-			self:setCursorPos(cursorPos)
-		else
-			self:setCursorPos(nil, 1)
-		end
+		moveCursor(self, dir)
 		return 1 -- Consume input.
 	else
 		return self.neighbor[dir]
