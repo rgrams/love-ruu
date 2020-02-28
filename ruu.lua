@@ -165,8 +165,10 @@ local function stopDrag(self, key, val)
 	end
 end
 
-local function input(self, name, subName, change)
-	if name == "click" then
+local navDirs = { up = 1, down = 1, left = 1, right = 1, next = 1, prev = 1 }
+
+local function input(self, inputType, action, value, change, isRepeat, x, y, dx, dy)
+	if action == "left click" then
 		if change == 1 then
 			-- Press and focus the topmost hovered node.
 			local topWidget = focusAtCursor(self)
@@ -191,7 +193,7 @@ local function input(self, name, subName, change)
 				return true
 			end
 		end
-	elseif name == "enter" then
+	elseif action == "enter" then
 		if change == 1 then
 			if self.focusedWidget then
 				self.focusedWidget:press(nil, nil, true)
@@ -205,10 +207,10 @@ local function input(self, name, subName, change)
 				return true
 			end
 		end
-	elseif name == "direction" and change == 1 then
+	elseif navDirs[action] and value == 1 then
 		local widget = self.focusedWidget
 		if widget then
-			local neighbor = widget:getFocusNeighbor(subName)
+			local neighbor = widget:getFocusNeighbor(action)
 			if neighbor == 1 then -- No neighbor, but used input.
 				return true
 			elseif neighbor then
@@ -216,41 +218,55 @@ local function input(self, name, subName, change)
 				return true
 			end
 		end
-	elseif name == "scroll x" then
+	elseif action == "scrollx" then
 		local didScroll = false
 		for widget,_ in pairs(self.hoveredWidgets) do
 			if widget.scroll then
-				widget:scroll(change, 0)
+				widget:scroll(dx, dy)
 				didScroll = true
 			end
 		end
 		return didScroll
-	elseif name == "scroll y" then
+	elseif action == "scrolly" then
 		local didScroll = false
 		for widget,_ in pairs(self.hoveredWidgets) do
 			if widget.scroll then
-				widget:scroll(0, change)
+				widget:scroll(dx, dy)
 				didScroll = true
 			end
 		end
 		return didScroll
-	elseif name == "text" then
+	elseif action == "text" then
 		local widget = self.focusedWidget
 		if widget and widget.textInput then
 			widget:textInput(change)
 			return true
 		end
-	elseif name == "backspace" then
+	elseif action == "backspace" then
 		local widget = self.focusedWidget
 		if widget and widget.backspace then
 			widget:backspace()
 			return true
 		end
-	elseif name == "delete" then
+	elseif action == "delete" then
 		local widget = self.focusedWidget
 		if widget and widget.delete then
 			widget:delete()
 			return true
+		end
+	end
+
+	-- For any unused input:
+	if inputType == "focus" then
+		if self.focusedWidget then
+			self.focusedWidget:call("input", action, value, change, isRepeat)
+		end
+		for i,panel in ipairs(self.focusedPanels) do
+			panel:call("input", action, value, change, isRepeat)
+		end
+	elseif inputType == "hover" then
+		for widget,_ in ipairs(self.hoveredWidgets) do
+			widget:call("input", action, value, change, isRepeat)
 		end
 	end
 end
