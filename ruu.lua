@@ -317,6 +317,7 @@ end
 
 local function makeWidget(self, widgetType, obj, isEnabled, themeType, theme)
 	assert(obj, "Ruu - make " .. widgetType .. " passed a nil object.")
+	obj.ruu = self
 	-- UI Widget Lists
 	self.allWidgets[obj] = true
 	if isEnabled then
@@ -488,7 +489,8 @@ local function mapNextPrev(self, map)
 	end
 end
 
-local function new(baseTheme)
+local function new(getInput, baseTheme)
+	assert(type(getInput) == "function", "Ruu() - Requires a function for getting current input values.")
 	local self = {
 		allWidgets = {},
 		enabledWidgets = {},
@@ -503,6 +505,7 @@ local function new(baseTheme)
 		mouseMoved = mouseMoved,
 		mx = 0, my = 0,
 		input = input,
+		getInput = getInput,
 		registerLayers = registerLayers,
 		layers = {},
 		setFocus = setFocus,
