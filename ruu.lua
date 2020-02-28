@@ -165,6 +165,24 @@ local function stopDrag(self, key, val)
 	end
 end
 
+-- Calls the named function on an object and its scripts, stopping on the first truthy return value.
+local function consumableCall(obj, funcName, ...)
+	local r
+	if obj[funcName] then
+		r = obj[funcName](obj, ...)
+		if r then  return r  end
+	end
+	if obj.script then
+		for i=1,#obj.script do
+			local scr = obj.script[i]
+			if scr[funcName] then
+				r = scr[funcName](obj, ...)
+				if r then  return r  end
+			end
+		end
+	end
+end
+
 local navDirs = { up = 1, down = 1, left = 1, right = 1, next = 1, prev = 1 }
 
 local function input(self, inputType, action, value, change, isRepeat, x, y, dx, dy)
@@ -257,17 +275,21 @@ local function input(self, inputType, action, value, change, isRepeat, x, y, dx,
 	end
 
 	-- For any unused input:
+	-- Call a separate function name than normal input so we can't get infinite loops.
+	local r
 	if inputType == "focus" then
 		if self.focusedWidget then
-			self.focusedWidget:call("ruuinput", action, value, change, isRepeat)
+			r = consumableCall(self.focusedWidget, "ruuinput", action, value, change, isRepeat)
+			if r then  return r  end
 		end
 		for i,panel in ipairs(self.focusedPanels) do
-			-- Call a separate function than normal input so we can't get infinite loops.
-			panel:call("ruuinput", action, value, change, isRepeat)
+			r = consumableCall(panel, "ruuinput", action, value, change, isRepeat)
+			if r then  return r  end
 		end
 	elseif inputType == "hover" then
-		for widget,_ in ipairs(self.hoveredWidgets) do
-			widget:call("ruuinput", action, value, change, isRepeat)
+		for widget,_ in pairs(self.hoveredWidgets) do
+			r = consumableCall(widget, "ruuinput", action, value, change, isRepeat)
+			if r then  return r  end
 		end
 	end
 end
