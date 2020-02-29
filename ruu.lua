@@ -71,10 +71,10 @@ local function setPanelsFocused(panels, focused)
 	end
 end
 
-local function setFocus(self, widget)
+local function setFocus(self, widget, isKeyboard)
 	if widget == self.focusedWidget then  return  end
 	if self.focusedWidget then
-		self.focusedWidget:unfocus()
+		self.focusedWidget:unfocus(isKeyboard)
 	end
 	self.focusedWidget = widget
 	if widget then
@@ -88,7 +88,7 @@ local function setFocus(self, widget)
 			end
 		end
 		-- New widget may have been an old ancestor panel, so focused it after panels.
-		widget:focus()
+		widget:focus(isKeyboard)
 	else
 		setPanelsFocused(self.focusedPanels, false)
 	end
@@ -232,7 +232,7 @@ local function input(self, inputType, action, value, change, isRepeat, x, y, dx,
 			if neighbor == 1 then -- No neighbor, but used input.
 				return true
 			elseif neighbor then
-				setFocus(self, neighbor)
+				setFocus(self, neighbor, true)
 				return true
 			end
 		end
