@@ -161,13 +161,13 @@ local function replaceSelection(self, replaceWith)
 	updateCursorX(self)
 end
 
-function InputField.textInput(self, char)
+function InputField.textInput(self, text)
 	if self.selection.i1 then
-		replaceSelection(self, char)
+		replaceSelection(self, text)
 	else
-		self.preCursorText = self.preCursorText .. char
+		self.preCursorText = self.preCursorText .. text
 		self:setText(self.preCursorText .. self.postCursorText)
-		self.cursorI = clamp(self.cursorI + 1, 0, #self.text)
+		self.cursorI = clamp(self.cursorI + #text, 0, #self.text)
 		updateCursorX(self)
 	end
 end
@@ -241,6 +241,22 @@ function InputField.ruuinput(self, action, value, change, isRepeat)
 		moveCursor(self, nil, #self.text)
 	elseif action == "cancel" and change == 1 then
 		self:cancel()
+	elseif action == "cut" and change == 1 then
+		if self.selection.i1 then
+			local selText = string.sub(self.text, self.selection.i1+1, self.selection.i2)
+			love.system.setClipboardText(selText)
+			self:delete()
+		end
+	elseif action == "copy" and change == 1 then
+		if self.selection.i1 then
+			local selText = string.sub(self.text, self.selection.i1+1, self.selection.i2)
+			love.system.setClipboardText(selText)
+		end
+	elseif action == "paste" and change == 1 then
+		self:textInput(love.system.getClipboardText())
+	elseif action == "select all" and change == 1 then
+		self:setSelection(0, #self.text) -- Select all.
+		self:setCursorPos(#self.text) -- Set cursor to end.
 	end
 end
 
