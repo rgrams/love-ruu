@@ -3,8 +3,19 @@ local basePath = (...):gsub('[^%.]+$', '')
 local Button = require(basePath .. "Button")
 local InputField = Button:extend()
 
+local baseAlignVals = { left = -1, center = 0, right = 1, justify = -1 }
+local textAlignVals = { left = 0, center = -0.5, right = -1, justify = 0 }
+
 local function clamp(x, min, max)
 	return x > min and (x < max and x or max) or min
+end
+
+local function getTextLeftPos(self)
+	local hAlign = self.label.hAlign
+	local left = self.label.pos.x
+	left = left + self.label.w/2 * baseAlignVals[hAlign]
+	left = left + self.label.font:getWidth(self.text) * textAlignVals[hAlign]
+	return left
 end
 
 function InputField.setSelection(self, startI, endI)
@@ -15,11 +26,13 @@ function InputField.setSelection(self, startI, endI)
 		end
 		local startI, endI = math.min(startI, endI), math.max(startI, endI) -- Make sure they're in order.
 		self.selection.i1, self.selection.i2 = startI, endI
-		local left = -self.w/2 + self.padX
+
+		-- Calculate local x positions for start and end of selection.
+		local left = getTextLeftPos(self)
 		local preText = string.sub(self.text, 0, startI)
-		self.selection.x1 = self.label.font:getWidth(preText)
+		self.selection.x1 = left + self.label.font:getWidth(preText)
 		local toEndText = string.sub(self.text, 0, endI)
-		self.selection.x2 = self.label.font:getWidth(toEndText)
+		self.selection.x2 = left + self.label.font:getWidth(toEndText)
 	else
 		self.selection.i1, self.selection.i2 = nil, nil
 	end
@@ -44,7 +57,8 @@ end
 
 -- Update cursor pixel position, etc.
 local function updateCursorX(self)
-	self.cursorX = self.label.font:getWidth(self.preCursorText)
+	local left = getTextLeftPos(self)
+	self.cursorX = left + self.label.font:getWidth(self.preCursorText)
 	-- TODO: Update mask scrolling.
 end
 
