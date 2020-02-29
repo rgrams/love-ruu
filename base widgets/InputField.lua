@@ -10,12 +10,24 @@ local function clamp(x, min, max)
 	return x > min and (x < max and x or max) or min
 end
 
-local function getTextLeftPos(self)
+local function getTextLeftPos(self, labelLocal)
 	local hAlign = self.label.hAlign
-	local left = self.label.pos.x
+	local left = labelLocal and 0 or self.label.pos.x
 	left = left + self.label.w/2 * baseAlignVals[hAlign]
 	left = left + self.label.font:getWidth(self.text) * textAlignVals[hAlign]
 	return left
+end
+
+-- Update cursor pixel position, etc.
+local function updateCursorX(self)
+	local left = getTextLeftPos(self)
+	self.cursorX = left + self.label.font:getWidth(self.preCursorText)
+	-- TODO: Update mask scrolling.
+end
+
+local function updateCursorSlices(self)
+	self.preCursorText = string.sub(self.text, 0, self.cursorI)
+	self.postCursorText = string.sub(self.text, self.cursorI + 1)
 end
 
 function InputField.setSelection(self, startI, endI)
@@ -38,28 +50,84 @@ function InputField.setSelection(self, startI, endI)
 	end
 end
 
-function InputField.focus(self)
+function InputField.focus(self, isKeyboard)
 	if not self.isFocused then
-		self:setSelection(0, #self.text) -- Select all.
-		self:setCursorPos(#self.text) -- Set cursor to end.
 		self.oldText = self.text -- Save in case of cancel.
+		if isKeyboard then
+			self:setSelection(0, #self.text) -- Select all.
+			self:setCursorPos(#self.text) -- Set cursor to end.
+		end
 	end
 	self.isFocused = true
 	self.theme[self.themeType].focus(self)
 end
 
-function InputField.unfocus(self)
+function InputField.unfocus(self, isKeyboard)
 	self.isFocused = false
 	self.theme[self.themeType].unfocus(self)
 	if self.isPressed then  self:release(true)  end -- Release without firing.
-	if self.confirmFunc and self.text ~= self.oldText then  self:confirmFunc()  end
+	if self.confirmFunc and self.text ~= self.oldText then
+		local rejected = self:confirmFunc()
+		if rejected then  self:cancel()  end
+	end
 end
 
--- Update cursor pixel position, etc.
-local function updateCursorX(self)
-	local left = getTextLeftPos(self)
-	self.cursorX = left + self.label.font:getWidth(self.preCursorText)
-	-- TODO: Update mask scrolling.
+-- Takes an X coordinat local to the label, returns an index and a local X pos of that index.
+local function getClosestIndexToX(self, x)
+	local left = getTextLeftPos(self, true)
+	if x < left then  return 0, left  end
+	local font = self.label.font
+	local textWidth = font:getWidth(self.text)
+	if x > left + textWidth then  return #self.text, left + textWidth  end
+	local minDist, minIndex, minX = math.huge, 0, 0
+	for i=1,#self.text do
+		local w = font:getWidth(string.sub(self.text, 0, i))
+		local dist = math.abs(left + w - x)
+		if dist < minDist then
+			minDist, minIndex, minX = dist, i, left + w
+		end
+	end
+	return minIndex, minX
+end
+
+function InputField.drag(self, dx, dy, dragType)
+	if dragType then  return  end -- Only default drags.
+	self.dragX, self.dragY = self.dragX + dx, self.dragY + dy
+	local lx, ly = self.label:toLocal(self.dragX, self.dragY)
+	local i, x = getClosestIndexToX(self, lx)
+	x = x + self.label.pos.x
+	self.cursorI, self.cursorX = i, x
+	updateCursorSlices(self)
+	self:setSelection(self.dragI, i)
+end
+
+function InputField.press(self, mx, my, isKeyboard)
+	self.super.press(self, mx, my, isKeyboard)
+	if not isKeyboard then -- Set cursor to mouse pos.
+		local lx, ly = self.label:toLocal(mx, my)
+		local i, x = getClosestIndexToX(self, lx)
+		x = x + self.label.pos.x
+		self.cursorI, self.cursorX = i, x
+		updateCursorSlices(self)
+		self.dragI, self.dragX, self.dragY = i, mx, my
+		self:setSelection(nil, nil)
+	end
+end
+
+function InputField.release(self, dontFire, mx, my, isKeyboard)
+	self.super.release(self, dontFire, mx, my, isKeyboard)
+	if isKeyboard and not dontFire and self.confirmFunc then
+		if self.text ~= self.oldText then
+			local rejected = self:confirmFunc()
+			if rejected then  self:cancel()  end
+		end
+	end
+end
+
+function InputField.cancel(self)
+	self.text, self.label.text = self.oldText, self.oldText
+	self:setSelection(0, #self.text)
+	self:setCursorPos(#self.text)
 end
 
 function InputField.setCursorPos(self, absolute, delta)
@@ -68,8 +136,7 @@ function InputField.setCursorPos(self, absolute, delta)
 	absolute = (absolute or self.cursorI) + delta
 	self.cursorI = clamp(absolute, 0, #self.text)
 	-- Re-slice text around cursor.
-	self.preCursorText = string.sub(self.text, 0, self.cursorI)
-	self.postCursorText = string.sub(self.text, self.cursorI + 1)
+	updateCursorSlices(self)
 
 	updateCursorX(self)
 end
@@ -122,13 +189,7 @@ function InputField.delete(self)
 	else
 		self.postCursorText = string.sub(self.postCursorText, 2)
 		self:setText(self.preCursorText .. self.postCursorText)
-	end
-end
-
-function InputField.release(self, dontFire, mx, my, isKeyboard)
-	self.super.release(self, dontFire, mx, my, isKeyboard)
-	if isKeyboard and not dontFire and self.confirmFunc then
-		if self.text ~= self.oldText then  self:confirmFunc()  end
+		updateCursorX(self)
 	end
 end
 
@@ -179,9 +240,7 @@ function InputField.ruuinput(self, action, value, change, isRepeat)
 	elseif action == "end" and change == 1 then
 		moveCursor(self, nil, #self.text)
 	elseif action == "cancel" and change == 1 then
-		self.text, self.label.text = self.oldText, self.oldText
-		self.isFocused = false
-		self:focus()
+		self:cancel()
 	end
 end
 
