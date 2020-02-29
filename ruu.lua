@@ -404,9 +404,11 @@ local function makeScrollArea(self, obj, isEnabled, ox, oy, scrollDist, nudgeDis
 	obj.theme[obj.themeType].init(obj)
 end
 
-local function makeInputField(self, obj, textObj, isEnabled, editFunc, confirmFunc, placeholderText, themeType, theme)
+local function makeInputField(self, obj, textObj, maskObj, isEnabled, editFunc, confirmFunc, scrollToRight, placeholderText, themeType, theme)
 	makeWidget(self, "InputField", obj, isEnabled, themeType, theme)
 	obj.label = textObj
+	obj.mask = maskObj
+	obj.scrollX, obj.scrollToRight = 0, scrollToRight
 	textObj.text = placeholderText or textObj.text
 	obj.placeholderText = placeholderText
 	obj.editFunc, obj.confirmFunc = editFunc, confirmFunc

@@ -10,19 +10,78 @@ local function clamp(x, min, max)
 	return x > min and (x < max and x or max) or min
 end
 
-local function getTextLeftPos(self, labelLocal)
+local function getTextLeftPos(self, labelLocal, flip)
 	local hAlign = self.label.hAlign
-	local left = labelLocal and 0 or self.label.pos.x
-	left = left + self.label.w/2 * baseAlignVals[hAlign]
-	left = left + self.label.font:getWidth(self.text) * textAlignVals[hAlign]
+	local left = self.label.w/2 * baseAlignVals[hAlign]
+	local textAlign = textAlignVals[hAlign] + (flip and 1 or 0)
+	left = left + self.label.font:getWidth(self.text) * textAlign
+
+
+	if not labelLocal then
+		local wx, wy = self.label:toWorld(left, 0)
+		local lx, ly = self:toLocal(wx, wy)
+		left = lx
+	end
 	return left
+end
+
+local function scrollTo(self, endX, limitX, toLeft)
+	if toLeft and endX < limitX then
+		local outDist = endX - limitX
+		self.scrollX = self.scrollX - outDist
+		self.mask:setOffset(self.scrollX, 0)
+		return true
+	elseif not toLeft and endX > limitX then
+		local outDist = endX - limitX
+		self.scrollX = self.scrollX - outDist
+		self.mask:setOffset(self.scrollX, 0)
+		return true
+	end
+end
+
+-- Outside scripts may want to call this when the InputField is resized.
+function InputField.updateScroll(self)
+	local oldCursorX = self.cursorX
+	if self.isFocused then 	-- If in focus, ensure that cursor is in view.
+		local oldScrollX = self.scrollX
+		if self.label.font:getWidth(self.text) <= self.innerW then
+			self.scrollX = 0
+			self.mask:setOffset(self.scrollX, 0)
+		else
+			scrollTo(self, self.cursorX, self.innerW/2, false)
+			scrollTo(self, self.cursorX, -self.innerW/2, true)
+		end
+		local deltaScroll = self.scrollX - oldScrollX
+		if deltaScroll ~= 0 then
+			self.cursorX = self.cursorX + deltaScroll
+			if self.selection.x1 and self.selection.x2 then
+				self.selection.x1 = self.selection.x1 + deltaScroll
+				self.selection.x2 = self.selection.x2 + deltaScroll
+			end
+		end
+	else -- Not in focus, scroll to one end according to the `self.scrollToRight` setting.
+		if self.label.font:getWidth(self.text) <= self.innerW then
+			self.scrollX = 0
+			self.mask:setOffset(self.scrollX, 0)
+		else
+			local endPos = getTextLeftPos(self, nil, self.scrollToRight)
+			if self.scrollToRight then
+				scrollTo(self, endPos, self.innerW/2, false)
+				scrollTo(self, endPos, self.innerW/2, true) -- Use up any extra space if there is some.
+			else
+				scrollTo(self, endPos, -self.innerW/2, true)
+				scrollTo(self, endPos, -self.innerW/2, false) -- Use up any extra space if there is some.
+			end
+		end
+		-- Don't care about the cursorX when not in focus - it's not shown and will be changed on focus.
+	end
 end
 
 -- Update cursor pixel position, etc.
 local function updateCursorX(self)
 	local left = getTextLeftPos(self)
 	self.cursorX = left + self.label.font:getWidth(self.preCursorText)
-	-- TODO: Update mask scrolling.
+	self:updateScroll()
 end
 
 local function updateCursorSlices(self)
@@ -43,8 +102,10 @@ function InputField.setSelection(self, startI, endI)
 		local left = getTextLeftPos(self)
 		local preText = string.sub(self.text, 0, startI)
 		self.selection.x1 = left + self.label.font:getWidth(preText)
+		self.selection.x1 = math.max(-self.innerW/2, self.selection.x1)
 		local toEndText = string.sub(self.text, 0, endI)
 		self.selection.x2 = left + self.label.font:getWidth(toEndText)
+		self.selection.x2 = math.min(self.innerW/2, self.selection.x2)
 	else
 		self.selection.i1, self.selection.i2 = nil, nil
 	end
@@ -52,13 +113,13 @@ end
 
 function InputField.focus(self, isKeyboard)
 	if not self.isFocused then
+		self.isFocused = true
 		self.oldText = self.text -- Save in case of cancel.
 		if isKeyboard then
-			self:setSelection(0, #self.text) -- Select all.
 			self:setCursorPos(#self.text) -- Set cursor to end.
+			self:setSelection(0, #self.text) -- Select all.
 		end
 	end
-	self.isFocused = true
 	self.theme[self.themeType].focus(self)
 end
 
@@ -70,9 +131,10 @@ function InputField.unfocus(self, isKeyboard)
 		local rejected = self:confirmFunc()
 		if rejected then  self:cancel()  end
 	end
+	self:updateScroll()
 end
 
--- Takes an X coordinat local to the label, returns an index and a local X pos of that index.
+-- Takes an X coordinate local to the label, returns an index and a local X pos of that index.
 local function getClosestIndexToX(self, x)
 	local left = getTextLeftPos(self, true)
 	if x < left then  return 0, left  end
@@ -95,9 +157,11 @@ function InputField.drag(self, dx, dy, dragType)
 	self.dragX, self.dragY = self.dragX + dx, self.dragY + dy
 	local lx, ly = self.label:toLocal(self.dragX, self.dragY)
 	local i, x = getClosestIndexToX(self, lx)
-	x = x + self.label.pos.x
-	self.cursorI, self.cursorX = i, x
+	local wx, wy = self.label:toWorld(x, 0)
+	local lx, ly = self:toLocal(wx, wy)
+	self.cursorI, self.cursorX = i, lx
 	updateCursorSlices(self)
+	updateCursorX(self) -- To update mask scroll.
 	self:setSelection(self.dragI, i)
 end
 
@@ -106,9 +170,9 @@ function InputField.press(self, mx, my, isKeyboard)
 	if not isKeyboard then -- Set cursor to mouse pos.
 		local lx, ly = self.label:toLocal(mx, my)
 		local i, x = getClosestIndexToX(self, lx)
-		x = x + self.label.pos.x
 		self.cursorI, self.cursorX = i, x
 		updateCursorSlices(self)
+		updateCursorX(self)
 		self.dragI, self.dragX, self.dragY = i, mx, my
 		self:setSelection(nil, nil)
 	end
@@ -126,8 +190,8 @@ end
 
 function InputField.cancel(self)
 	self.text, self.label.text = self.oldText, self.oldText
-	self:setSelection(0, #self.text)
 	self:setCursorPos(#self.text)
+	self:setSelection(0, #self.text)
 end
 
 function InputField.setCursorPos(self, absolute, delta)
@@ -144,6 +208,7 @@ end
 function InputField.setText(self, text, isPlaceholder)
 	self.text = text
 	self.label.text = text
+
 	if self.editFunc then  self:editFunc(text)  end
 	self.theme[self.themeType].setText(self, isPlaceholder)
 end
@@ -255,8 +320,8 @@ function InputField.ruuinput(self, action, value, change, isRepeat)
 	elseif action == "paste" and change == 1 then
 		self:textInput(love.system.getClipboardText())
 	elseif action == "select all" and change == 1 then
-		self:setSelection(0, #self.text) -- Select all.
 		self:setCursorPos(#self.text) -- Set cursor to end.
+		self:setSelection(0, #self.text) -- Select all.
 	end
 end
 
