@@ -115,7 +115,11 @@ local function mouseMoved(self, x, y, dx, dy)
 	-- Still hit-check all widgets while dragging, for scroll areas and drag-and-drop.
 	for widget,_ in pairs(self.enabledWidgets) do
 		-- Don't need to hitCheck dragged widgets, but make sure they are hovered.
-		if self.objDragCount[widget] or widget:hitCheck(x, y) then
+		local hitWgt = widget:hitCheck(x, y)
+		if hitWgt and widget.maskObject then
+			hitWgt = widget.maskObject:hitCheck(x, y)
+		end
+		if self.objDragCount[widget] or hitWgt then
 			didHit = true
 			if not widget.isHovered then
 				self.hoveredWidgets[widget] = true
