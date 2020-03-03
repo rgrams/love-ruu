@@ -125,9 +125,8 @@ function InputField.init(self)
 	self.textObj.color[4] = 0.5
 end
 
-function InputField.setText(self, isPlaceholder)
-	local alpha = isPlaceholder and 0.5 or 1
-	self.textObj.color[4] = alpha
+function InputField.setText(self)
+	self.textObj.color[4] = 1
 end
 
 --##############################  PANEL  ##############################

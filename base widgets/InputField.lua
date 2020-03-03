@@ -128,7 +128,7 @@ function InputField.unfocus(self, isKeyboard)
 	self.theme[self.themeType].unfocus(self)
 	if self.isPressed then  self:release(true)  end -- Release without firing.
 	if self.confirmFunc and self.text ~= self.oldText then
-		local rejected = self:confirmFunc()
+		local rejected = self:confirmFunc(true)
 		if rejected then  self:cancel()  end
 	end
 	self:updateScroll()
@@ -182,7 +182,7 @@ function InputField.release(self, dontFire, mx, my, isKeyboard)
 	self.super.release(self, dontFire, mx, my, isKeyboard)
 	if isKeyboard and not dontFire and self.confirmFunc then
 		if self.text ~= self.oldText then
-			local rejected = self:confirmFunc()
+			local rejected = self:confirmFunc(false)
 			if rejected then  self:cancel()  end
 		end
 	end
@@ -205,12 +205,12 @@ function InputField.setCursorPos(self, absolute, delta)
 	updateCursorX(self)
 end
 
-function InputField.setText(self, text, isPlaceholder)
+function InputField.setText(self, text)
 	self.text = text
 	self.label.text = text
 
 	if self.editFunc then  self:editFunc(text)  end
-	self.theme[self.themeType].setText(self, isPlaceholder)
+	self.theme[self.themeType].setText(self)
 end
 
 local function replaceSelection(self, replaceWith)
