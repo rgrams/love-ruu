@@ -220,7 +220,7 @@ local function replaceSelection(self, replaceWith)
 	self.preCursorText = string.sub(self.text, 0, self.selection.i1)
 	self.preCursorText = self.preCursorText .. replaceWith
 	self.postCursorText = string.sub(self.text, self.selection.i2 + 1)
-	self.selection.i1, self.selection.i2 = nil, nil
+	self:setSelection(nil, nil)
 
 	self:setText(self.preCursorText .. self.postCursorText)
 	self.cursorI = clamp(cursorPos, 0, #self.text)
@@ -238,8 +238,29 @@ function InputField.textInput(self, text)
 	end
 end
 
+local jumpLeftPattern = "[^%w_][%w_]*$"
+local jumpRightPattern = "^[%w_]*[^%w_]"
+
+local function getJumpPosition(curIdx, text, dir)
+	if dir == "left" then
+		local i1, i2 = string.find(text, jumpLeftPattern)
+		return math.min(i1 or 0, curIdx - 1)
+	elseif dir == "right" then
+		local i1, i2 = string.find(text, jumpRightPattern)
+		i2 = i2 and i2 - 1 or #text
+		return math.max(curIdx + i2, curIdx + 1)
+	end
+end
+
 function InputField.backspace(self)
-	if self.selection.i1 then
+	if self.ruu.getInput("wordJumpModifier") == 1 then
+		local pos = getJumpPosition(self.cursorI, self.preCursorText, "left")
+		pos = math.max(0, pos)
+		self:setSelection(nil, nil)
+		self.preCursorText = string.sub(self.preCursorText, 0, pos)
+		self:setText(self.preCursorText .. self.postCursorText)
+		self:setCursorPos(pos)
+	elseif self.selection.i1 then
 		replaceSelection(self)
 	else
 		self.preCursorText = string.sub(self.preCursorText, 1, -2)
@@ -250,7 +271,14 @@ function InputField.backspace(self)
 end
 
 function InputField.delete(self)
-	if self.selection.i1 then
+	if self.ruu.getInput("wordJumpModifier") == 1 then
+		local pos = getJumpPosition(self.cursorI, self.postCursorText, "right")
+		pos = math.min(#self.text + 1, pos + 1) - self.cursorI -- "local" to postCursorText
+		self:setSelection(nil, nil)
+		self.postCursorText = string.sub(self.postCursorText, pos, #self.postCursorText)
+		self:setText(self.preCursorText .. self.postCursorText)
+		self:setCursorPos(self.cursorI)
+	elseif self.selection.i1 then
 		replaceSelection(self)
 	else
 		self.postCursorText = string.sub(self.postCursorText, 2)
@@ -280,25 +308,11 @@ local function moveCursor(self, delta, absolute)
 			else -- Larger move, ignore selection and follow the user input.
 				cursorI = absolute
 			end
-			self.selection.i1, self.selection.i2 = nil, nil
+			self:setSelection(nil, nil)
 			self:setCursorPos(cursorI, delta)
 		else
 			self:setCursorPos(absolute, delta)
 		end
-	end
-end
-
-local jumpLeftPattern = "[^%w_][%w_]*$"
-local jumpRightPattern = "^[%w_]*[^%w_]"
-
-local function getJumpPosition(curIdx, text, dir)
-	if dir == "left" then
-		local i1, i2 = string.find(text, jumpLeftPattern)
-		return math.min(i1 or 0, curIdx - 1)
-	elseif dir == "right" then
-		local i1, i2 = string.find(text, jumpRightPattern)
-		i2 = i2 and i2 - 1 or #text
-		return math.max(curIdx + i2, curIdx + 1)
 	end
 end
 
