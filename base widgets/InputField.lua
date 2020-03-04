@@ -99,6 +99,7 @@ function InputField.setSelection(self, startI, endI)
 		self.selection.i1, self.selection.i2 = startI, endI
 
 		-- Calculate local x positions for start and end of selection.
+		self.label:updateTransform() -- May have updated scroll just before this.
 		local left = getTextLeftPos(self)
 		local preText = string.sub(self.text, 0, startI)
 		self.selection.x1 = left + self.label.font:getWidth(preText)
@@ -287,12 +288,36 @@ local function moveCursor(self, delta, absolute)
 	end
 end
 
+local jumpLeftPattern = "[^%w_][%w_]*$"
+local jumpRightPattern = "^[%w_]*[^%w_]"
+
+local function getJumpPosition(curIdx, text, dir)
+	if dir == "left" then
+		local i1, i2 = string.find(text, jumpLeftPattern)
+		return math.min(i1 or 0, curIdx - 1)
+	elseif dir == "right" then
+		local i1, i2 = string.find(text, jumpRightPattern)
+		i2 = i2 and i2 - 1 or #text
+		return math.max(curIdx + i2, curIdx + 1)
+	end
+end
+
 function InputField.getFocusNeighbor(self, dir)
 	if dir == "left" then
-		moveCursor(self, -1)
+		if self.ruu.getInput("wordJumpModifier") == 1 then
+			local pos = getJumpPosition(self.cursorI, self.preCursorText, "left")
+			moveCursor(self, nil, pos)
+		else
+			moveCursor(self, -1)
+		end
 		return 1 -- Consume input.
 	elseif dir == "right" then
-		moveCursor(self, 1)
+		if self.ruu.getInput("wordJumpModifier") == 1 then
+			local pos = getJumpPosition(self.cursorI, self.postCursorText, "right")
+			moveCursor(self, nil, pos)
+		else
+			moveCursor(self, 1)
+		end
 		return 1 -- Consume input.
 	else
 		return self.neighbor[dir]
