@@ -43,12 +43,12 @@ end
 -- Returns:
 --    A single ancestor object, if `nonRecursive` is true, or nil.
 --    A sequence of ancestor objects that are Panels in child-parent order, or nil.
-local function getAncestorPanels(obj, nonRecursive, ancestors)
+local function getAncestorPanels(self, obj, nonRecursive, ancestors)
 	if not obj then  return  end
 	local p = obj.parent -- Don't include starting object: keep current focus and ancestors separate.
 	while p ~= obj.tree do
 		if not p then  break  end
-		if p.widgetType == "Panel" then
+		if p.widgetType == "Panel" and self.allWidgets[p] then -- Widget can belong to a different Ruu instance.
 			if nonRecursive then  return p  end
 			ancestors = ancestors or {}
 			table.insert(ancestors, p)
@@ -78,12 +78,12 @@ local function setFocus(self, widget, isKeyboard)
 	end
 	self.focusedWidget = widget
 	if widget then
-		local firstAncestorPanel = getAncestorPanels(widget, true)
+		local firstAncestorPanel = getAncestorPanels(self, widget, true)
 		if self.focusedPanels[1] ~= firstAncestorPanel then
 			setPanelsFocused(self.focusedPanels, false)
 			if firstAncestorPanel then -- Of course will be `nil` if there isn't one.
 				self.focusedPanels[1] = firstAncestorPanel
-				getAncestorPanels(firstAncestorPanel, false, self.focusedPanels)
+				getAncestorPanels(self, firstAncestorPanel, false, self.focusedPanels)
 				setPanelsFocused(self.focusedPanels, true)
 			end
 		end
