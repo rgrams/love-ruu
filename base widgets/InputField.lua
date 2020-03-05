@@ -206,9 +206,16 @@ function InputField.setCursorPos(self, absolute, delta)
 	updateCursorX(self)
 end
 
+local function updateText(self, text)
+	self.text = text
+	self.label.text = text
+end
+
 function InputField.setText(self, text)
 	self.text = text
 	self.label.text = text
+	self:setCursorPos()
+	self:setSelection(self.selection.i1, self.selection.i2)
 
 	if self.editFunc then  self:editFunc(text)  end
 	self.theme[self.themeType].setText(self)
@@ -222,7 +229,7 @@ local function replaceSelection(self, replaceWith)
 	self.postCursorText = string.sub(self.text, self.selection.i2 + 1)
 	self:setSelection(nil, nil)
 
-	self:setText(self.preCursorText .. self.postCursorText)
+	updateText(self, self.preCursorText .. self.postCursorText)
 	self.cursorI = clamp(cursorPos, 0, #self.text)
 	updateCursorX(self)
 end
@@ -232,7 +239,7 @@ function InputField.textInput(self, text)
 		replaceSelection(self, text)
 	else
 		self.preCursorText = self.preCursorText .. text
-		self:setText(self.preCursorText .. self.postCursorText)
+		updateText(self, self.preCursorText .. self.postCursorText)
 		self.cursorI = clamp(self.cursorI + #text, 0, #self.text)
 		updateCursorX(self)
 	end
@@ -258,13 +265,13 @@ function InputField.backspace(self)
 		pos = math.max(0, pos)
 		self:setSelection(nil, nil)
 		self.preCursorText = string.sub(self.preCursorText, 0, pos)
-		self:setText(self.preCursorText .. self.postCursorText)
+		updateText(self, self.preCursorText .. self.postCursorText)
 		self:setCursorPos(pos)
 	elseif self.selection.i1 then
 		replaceSelection(self)
 	else
 		self.preCursorText = string.sub(self.preCursorText, 1, -2)
-		self:setText(self.preCursorText .. self.postCursorText)
+		updateText(self, self.preCursorText .. self.postCursorText)
 		self.cursorI = clamp(self.cursorI - 1, 0, #self.text)
 		updateCursorX(self)
 	end
@@ -276,13 +283,13 @@ function InputField.delete(self)
 		pos = math.min(#self.text + 1, pos + 1) - self.cursorI -- "local" to postCursorText
 		self:setSelection(nil, nil)
 		self.postCursorText = string.sub(self.postCursorText, pos, #self.postCursorText)
-		self:setText(self.preCursorText .. self.postCursorText)
+		updateText(self, self.preCursorText .. self.postCursorText)
 		self:setCursorPos(self.cursorI)
 	elseif self.selection.i1 then
 		replaceSelection(self)
 	else
 		self.postCursorText = string.sub(self.postCursorText, 2)
-		self:setText(self.preCursorText .. self.postCursorText)
+		updateText(self, self.preCursorText .. self.postCursorText)
 		updateCursorX(self)
 	end
 end
