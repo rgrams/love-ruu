@@ -407,10 +407,8 @@ local function makeRadioButton(self, obj, sibling, isEnabled, isChecked, release
 end
 
 local function makeRadioButtonGroup(self, objects, isEnabled, checkedObj, releaseFunc, themeType, theme)
-	print("Ruu.makeRadioButtonGroup")
 	for i,obj in ipairs(objects) do
 		makeWidget(self, "RadioButton", obj, isEnabled, themeType, theme)
-		print(obj)
 		obj.releaseFunc = releaseFunc
 		if obj == checkedObj then  obj.isChecked = true  end
 		obj.siblings = {}
