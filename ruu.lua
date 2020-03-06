@@ -314,9 +314,14 @@ local function setWidgetEnabled(self, widget, enabled)
 	end
 end
 
+local destroyRadioButton
+
 local function destroyWidget(self, widget)
 	setWidgetEnabled(self, widget, false)
 	self.allWidgets[widget] = nil
+	if widget.widgetType == "RadioButton" then
+		destroyRadioButton(self, widget)
+	end
 end
 
 local function makeWidget(self, widgetType, obj, isEnabled, themeType, theme)
@@ -354,9 +359,58 @@ local function makeToggleButton(self, obj, isEnabled, isChecked, releaseFunc, th
 	obj.theme[obj.themeType].init(obj)
 end
 
+-- Local var initialized above `destroyWidget`.
+-- Destroy a single RadioButton.
+function destroyRadioButton(self, obj)
+	if obj.isChecked then
+		local _,sibToCheck = next(obj.siblings)
+		if sibToCheck then
+			sibToCheck.isChecked = true
+			sibToCheck.theme[sibToCheck.themeType].setChecked(sibToCheck)
+		end
+	end
+	for i,sib in ipairs(obj.siblings) do
+		local siblings = sib.siblings
+		for i,sibObj in ipairs(siblings) do
+			if sibObj == obj then
+				table.remove(siblings, i)
+				break
+			end
+		end
+	end
+	if self.allWidgets[obj] then
+		obj.widgetType = nil -- So destroyWidget doesn't call this function again in an infinite loop.
+		destroyWidget(self, obj)
+	end
+end
+
+-- Makes a single RadioButton and adds it to an existing RadioButtonGroup.
+local function makeRadioButton(self, obj, sibling, isEnabled, isChecked, releaseFunc, themeType, theme)
+	assert(obj ~= sibling, "Ruu.makeRadioButton - Can't use the new object as the existing sibling. "..tostring(sibling))
+	makeWidget(self, "RadioButton", obj, isEnabled, themeType, theme)
+	obj.releaseFunc = releaseFunc
+	obj.isChecked = isChecked
+	obj.siblings = { sibling }
+	local siblings = sibling.siblings
+	for i,sib in ipairs(siblings) do
+		table.insert(sib.siblings, obj) -- Add new obj to all siblings' lists.
+		table.insert(obj.siblings, sib) -- Add each sibling to new obj's list.
+	end
+	table.insert(sibling.siblings, obj) -- Sibling won't have itself in its list, so it won't be in the iteration.
+	if obj.isChecked then
+		for i,sib in ipairs(obj.siblings) do
+			sib.isChecked = false
+			sib.theme[sib.themeType].setChecked(sib)
+		end
+	end
+	obj.theme[obj.themeType].init(obj)
+end
+
 local function makeRadioButtonGroup(self, objects, isEnabled, checkedObj, releaseFunc, themeType, theme)
+	print("Ruu.makeRadioButtonGroup")
 	for i,obj in ipairs(objects) do
 		makeWidget(self, "RadioButton", obj, isEnabled, themeType, theme)
+		print(obj)
 		obj.releaseFunc = releaseFunc
 		if obj == checkedObj then  obj.isChecked = true  end
 		obj.siblings = {}
@@ -522,7 +576,11 @@ local function new(getInput, baseTheme)
 
 		makeButton = makeButton,
 		makeToggleButton = makeToggleButton,
+
+		destroyRadioButton = destroyRadioButton,
+		makeRadioButton = makeRadioButton,
 		makeRadioButtonGroup = makeRadioButtonGroup,
+
 		makeSlider = makeSlider,
 		makeScrollArea = makeScrollArea,
 		makeInputField = makeInputField,

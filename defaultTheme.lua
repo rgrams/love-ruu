@@ -59,8 +59,8 @@ end
 local RadioButton = ToggleButton:extend()
 M.RadioButton = RadioButton
 
-function RadioButton.uncheck(self)
-	self.angle = 0
+function RadioButton.setChecked(self)
+	self.angle = self.isChecked and math.pi/4 or 0
 end
 
 --##############################  SLIDER - BAR  ##############################
