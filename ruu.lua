@@ -61,11 +61,11 @@ end
 local function setPanelsFocused(panels, focused)
 	if focused then
 		for i=#panels,1,-1 do
-			panels[i]:focus(i)
+			panels[i]:call("focus", i)
 		end
 	else
 		for i=#panels,1,-1 do
-			panels[i]:unfocus()
+			panels[i]:call("unfocus")
 			panels[i] = nil
 		end
 	end
@@ -74,7 +74,7 @@ end
 local function setFocus(self, widget, isKeyboard)
 	if widget == self.focusedWidget then  return  end
 	if self.focusedWidget then
-		self.focusedWidget:unfocus(isKeyboard)
+		self.focusedWidget:call("unfocus", isKeyboard)
 	end
 	self.focusedWidget = widget
 	if widget then
@@ -88,7 +88,7 @@ local function setFocus(self, widget, isKeyboard)
 			end
 		end
 		-- New widget may have been an old ancestor panel, so focused it after panels.
-		widget:focus(isKeyboard)
+		widget:call("focus", isKeyboard)
 	else
 		setPanelsFocused(self.focusedPanels, false)
 	end
@@ -109,7 +109,7 @@ local function mouseMoved(self, x, y, dx, dy)
 	if self.drags then
 		didHit = true
 		for i,drag in ipairs(self.drags) do
-			drag.object:drag(dx, dy, drag.type)
+			drag.object:call("drag", dx, dy, drag.type)
 		end
 	end
 	-- Still hit-check all widgets while dragging, for scroll areas and drag-and-drop.
@@ -123,16 +123,14 @@ local function mouseMoved(self, x, y, dx, dy)
 			didHit = true
 			if not widget.isHovered then
 				self.hoveredWidgets[widget] = true
-				widget:hover()
+				widget:call("hover")
 				-- TODO: separate callback for hover while drag-and-dropping.
 			end
-			if widget.mouseMovedFunc then
-				widget:mouseMovedFunc(x, y, dx, dy)
-			end
+			widget:call("mouseMovedFunc", x, y, dx, dy)
 		else
 			self.hoveredWidgets[widget] = nil
 			if widget.isHovered then
-				widget:unhover()
+				widget:call("unhover")
 			end
 		end
 	end
@@ -195,7 +193,7 @@ local function input(self, inputType, action, value, change, isRepeat, x, y, dx,
 			-- Press and focus the topmost hovered node.
 			local topWidget = focusAtCursor(self)
 			if topWidget then
-				topWidget:press(self.mx, self.my)
+				topWidget:call("press", self.mx, self.my)
 				startDrag(self, topWidget, nil) -- `nil` == default dragType.
 			end
 			return topWidget
@@ -208,7 +206,7 @@ local function input(self, inputType, action, value, change, isRepeat, x, y, dx,
 			-- Release hovered widgets if they are pressed
 			for widget,_ in pairs(self.hoveredWidgets) do
 				if widget.isPressed then
-					widget:release(false, self.mx, self.my)
+					widget:call("release", false, self.mx, self.my)
 				end
 			end
 			if next(self.hoveredWidgets) then
@@ -218,13 +216,13 @@ local function input(self, inputType, action, value, change, isRepeat, x, y, dx,
 	elseif action == "enter" then
 		if change == 1 then
 			if self.focusedWidget then
-				self.focusedWidget:press(nil, nil, true)
+				self.focusedWidget:call("press", nil, nil, true)
 				return true
 			end
 		elseif change == -1 then
 			if self.focusedWidget then
 				if self.focusedWidget.isPressed then
-					self.focusedWidget:release(nil, nil, nil, true)
+					self.focusedWidget:call("release", nil, nil, nil, true)
 				end
 				return true
 			end
@@ -244,7 +242,7 @@ local function input(self, inputType, action, value, change, isRepeat, x, y, dx,
 		local didScroll = false
 		for widget,_ in pairs(self.hoveredWidgets) do
 			if widget.scroll then
-				widget:scroll(dx, dy)
+				widget:call("scroll", dx, dy)
 				didScroll = true
 			end
 		end
@@ -253,7 +251,7 @@ local function input(self, inputType, action, value, change, isRepeat, x, y, dx,
 		local didScroll = false
 		for widget,_ in pairs(self.hoveredWidgets) do
 			if widget.scroll then
-				widget:scroll(dx, dy)
+				widget:call("scroll", dx, dy)
 				didScroll = true
 			end
 		end
@@ -261,19 +259,19 @@ local function input(self, inputType, action, value, change, isRepeat, x, y, dx,
 	elseif action == "text" then
 		local widget = self.focusedWidget
 		if widget and widget.textInput then
-			widget:textInput(value)
+			widget:call("textInput", value)
 			return true
 		end
 	elseif action == "backspace" and value == 1 then
 		local widget = self.focusedWidget
 		if widget and widget.backspace then
-			widget:backspace()
+			widget:call("backspace")
 			return true
 		end
 	elseif action == "delete" and value == 1 then
 		local widget = self.focusedWidget
 		if widget and widget.delete then
-			widget:delete()
+			widget:call("delete")
 			return true
 		end
 	end
@@ -306,11 +304,11 @@ local function setWidgetEnabled(self, widget, enabled)
 		self.hoveredWidgets[widget] = nil
 		if self.objDragCount[widget] then  stopDrag(self, "object", widget)  end
 		if self.focusedWidget == widget then
-			widget:unfocus()
+			widget:call("unfocus")
 			self.focusedWidget = nil -- Just remove it, don't change ancestor panel focus.
 		end
-		if widget.isHovered then  widget:unhover()  end
-		if widget.isPressed then  widget:release(true)  end
+		if widget.isHovered then  widget:call("unhover")  end
+		if widget.isPressed then  widget:call("release", true)  end
 	end
 end
 
