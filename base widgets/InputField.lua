@@ -16,7 +16,6 @@ local function getTextLeftPos(self, labelLocal, flip)
 	local textAlign = textAlignVals[hAlign] + (flip and 1 or 0)
 	left = left + self.label.font:getWidth(self.text) * textAlign
 
-
 	if not labelLocal then
 		local wx, wy = self.label:toWorld(left, 0)
 		local lx, ly = self:toLocal(wx, wy)
@@ -41,9 +40,8 @@ end
 
 -- Outside scripts may want to call this when the InputField is resized.
 function InputField.updateScroll(self)
-	local oldCursorX = self.cursorX
+	local oldScrollX = self.scrollX
 	if self.isFocused then 	-- If in focus, ensure that cursor is in view.
-		local oldScrollX = self.scrollX
 		if self.label.font:getWidth(self.text) <= self.innerW then
 			self.scrollX = 0
 			self.mask:setOffset(self.scrollX, 0)
@@ -74,6 +72,11 @@ function InputField.updateScroll(self)
 			end
 		end
 		-- Don't care about the cursorX when not in focus - it's not shown and will be changed on focus.
+	end
+	-- Calling .updateScroll twice in one frame would give the same result each time
+	-- if the transform stayed the same, resulting in double-scrolling and flip-flopping.
+	if self.scrollX ~= oldScrollX then
+		self.label:updateTransform()
 	end
 end
 
