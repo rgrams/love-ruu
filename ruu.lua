@@ -4,7 +4,7 @@ local defaultTheme = require(basePath .. "defaultTheme")
 
 local baseWidgetPath = basePath .. "base widgets."
 
-local baseFunctions = {
+local widgetClasses = {
 	Button = require(baseWidgetPath .. "Button"),
 	ToggleButton = require(baseWidgetPath .. "ToggleButton"),
 	RadioButton = require(baseWidgetPath .. "RadioButton"),
@@ -335,7 +335,7 @@ local function makeWidget(self, widgetType, obj, isEnabled, themeType, theme)
 	obj.themeType, obj.theme = themeType or widgetType, theme or self.theme
 	-- Widget Base Functions - hover, unhover, press, release, etc.
 	obj.widgetType = widgetType
-	for k,v in pairs(baseFunctions[widgetType]) do
+	for k,v in pairs(widgetClasses[widgetType]) do
 		obj[k] = v
 	end
 	-- Neighbors
