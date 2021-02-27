@@ -296,6 +296,17 @@ local function input(self, inputType, action, value, change, isRepeat, x, y, dx,
 	end
 end
 
+local DEF_HOVER_ACTIONS = { pan = 1, scrollx = 1, scrolly = 1 }
+
+local function inputWrapper(self, hoverActions, action, value, change, rawChange, isRepeat, x, y, dx, dy)
+	if action == "updateCursor" then
+		self:mouseMoved(x, y, dx, dy)
+	else
+		local actionType = (hoverActions or DEF_HOVER_ACTIONS)[action] and "hover" or "focus"
+		return self:input(actionType, action, value, change, isRepeat, x, y, dx, dy)
+	end
+end
+
 local function setWidgetEnabled(self, widget, enabled)
 	self.enabledWidgets[widget] = enabled or nil
 	widget.isEnabled = enabled
@@ -562,6 +573,7 @@ local function new(getInput, baseTheme)
 		mx = 0, my = 0,
 		input = input,
 		getInput = getInput,
+		inputWrapper = inputWrapper,
 		registerLayers = registerLayers,
 		layers = {},
 		setFocus = setFocus,
