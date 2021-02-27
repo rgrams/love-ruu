@@ -21,10 +21,13 @@ function ScrollArea.updateChildrenBounds(self)
 	local lt, rt, top, bot, w, h = 0, 0, 0, 0, 0, 0
 	if self.children then
 		lt, rt, top, bot = math.huge, -math.huge, math.huge, -math.huge
-		for i,child in ipairs(self.children) do
-			local lt2, rt2, top2, bot2 = getChildBounds(self, child)
-			lt, rt = math.min(lt, lt2), math.max(rt, rt2)
-			top, bot = math.min(top, top2), math.max(bot, bot2)
+		for i=1,self.children.maxn or #self.children do
+			local child = self.children[i]
+			if child then
+				local lt2, rt2, top2, bot2 = getChildBounds(self, child)
+				lt, rt = math.min(lt, lt2), math.max(rt, rt2)
+				top, bot = math.min(top, top2), math.max(bot, bot2)
+			end
 		end
 		w, h = rt - lt, bot - top
 	end
@@ -55,9 +58,9 @@ function ScrollArea.scroll(self, dx, dy)
 	lt, rt = lt + dx, rt + dx
 	top, bot = top + dy, bot + dy
 
-	local w2, h2 = self.innerW/2, self.innerH/2
+	local w2, h2 = self._contentAlloc.w/2, self._contentAlloc.h/2
 	-- For each axis:
-	if b.w <= self.innerW then -- Bounds are smaller than mask area - don't allow children out.
+	if b.w <= self._contentAlloc.w then -- Bounds are smaller than mask area - don't allow children out.
 		-- Don't allow scrolling - remove original delta.
 		local outLt = math.min(lt - dx + w2, 0)
 		local outRt = math.max(rt - dx - w2, 0)
@@ -67,7 +70,7 @@ function ScrollArea.scroll(self, dx, dy)
 		local insideRt = math.min(rt - w2, 0)
 		dx = dx - insideLt - insideRt
 	end
-	if b.h <= self.innerH then
+	if b.h <= self._contentAlloc.w then
 		local outTop = math.min(top - dy + h2, 0)
 		local outBot = math.max(bot - dy - h2, 0)
 		dy = 0 - outTop - outBot

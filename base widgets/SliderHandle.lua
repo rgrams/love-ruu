@@ -16,9 +16,9 @@ function SliderHandle.updatePos(self, dx, dy, isLocal)
 			dx, dy = bar:toLocal(wx, wy)
 		end
 		-- Clamp to start and end points.
-		self.parentOffsetX = math.max(startPoint, math.min(endPoint, self.parentOffsetX + dx))
+		self._myAlloc.x = math.max(startPoint, math.min(endPoint, self._myAlloc.x + dx))
 	else -- Set based on current fraction.
-		self.parentOffsetX = startPoint + self.length * self.fraction
+		self._myAlloc.x = startPoint + self.length * self.fraction
 	end
 end
 
@@ -26,7 +26,7 @@ function SliderHandle.drag(self, dx, dy, dragType, isLocal)
 	if dragType then  return  end -- Only respond to the default drag type.
 	self:updatePos(dx, dy, isLocal)
 
-	self.fraction = (self.parentOffsetX - self.offset + self.length/2) / self.length
+	self.fraction = (self._myAlloc.x - self.offset + self.length/2) / self.length
 	if self.dragFunc then  self:dragFunc(self.fraction)  end
 
 	self.theme[self.themeType].drag(self, dx, dy)

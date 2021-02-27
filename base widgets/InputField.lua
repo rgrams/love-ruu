@@ -41,13 +41,14 @@ end
 -- Outside scripts may want to call this when the InputField is resized.
 function InputField.updateScroll(self)
 	local oldScrollX = self.scrollX
+	local innerW = self._contentAlloc.w
 	if self.isFocused then 	-- If in focus, ensure that cursor is in view.
-		if self.label.font:getWidth(self.text) <= self.innerW then
+		if self.label.font:getWidth(self.text) <= innerW then
 			self.scrollX = 0
 			self.mask:setOffset(self.scrollX, 0)
 		else
-			scrollTo(self, self.cursorX, self.innerW/2, false)
-			scrollTo(self, self.cursorX, -self.innerW/2, true)
+			scrollTo(self, self.cursorX, innerW/2, false)
+			scrollTo(self, self.cursorX, -innerW/2, true)
 		end
 		local deltaScroll = self.scrollX - oldScrollX
 		if deltaScroll ~= 0 then
@@ -58,17 +59,17 @@ function InputField.updateScroll(self)
 			end
 		end
 	else -- Not in focus, scroll to one end according to the `self.scrollToRight` setting.
-		if self.label.font:getWidth(self.text) <= self.innerW then
+		if self.label.font:getWidth(self.text) <= innerW then
 			self.scrollX = 0
 			self.mask:setOffset(self.scrollX, 0)
 		else
 			local endPos = getTextLeftPos(self, nil, self.scrollToRight)
 			if self.scrollToRight then
-				scrollTo(self, endPos, self.innerW/2, false)
-				scrollTo(self, endPos, self.innerW/2, true) -- Use up any extra space if there is some.
+				scrollTo(self, endPos, innerW/2, false)
+				scrollTo(self, endPos, innerW/2, true) -- Use up any extra space if there is some.
 			else
-				scrollTo(self, endPos, -self.innerW/2, true)
-				scrollTo(self, endPos, -self.innerW/2, false) -- Use up any extra space if there is some.
+				scrollTo(self, endPos, -innerW/2, true)
+				scrollTo(self, endPos, -innerW/2, false) -- Use up any extra space if there is some.
 			end
 		end
 		-- Don't care about the cursorX when not in focus - it's not shown and will be changed on focus.
@@ -106,10 +107,10 @@ function InputField.setSelection(self, startI, endI)
 		local left = getTextLeftPos(self)
 		local preText = string.sub(self.text, 0, startI)
 		self.selection.x1 = left + self.label.font:getWidth(preText)
-		self.selection.x1 = math.max(-self.innerW/2, self.selection.x1)
+		self.selection.x1 = math.max(-self._contentAlloc.w/2, self.selection.x1)
 		local toEndText = string.sub(self.text, 0, endI)
 		self.selection.x2 = left + self.label.font:getWidth(toEndText)
-		self.selection.x2 = math.min(self.innerW/2, self.selection.x2)
+		self.selection.x2 = math.min(self._contentAlloc.w/2, self.selection.x2)
 	else
 		self.selection.i1, self.selection.i2 = nil, nil
 	end
