@@ -70,7 +70,7 @@ function ScrollArea.scroll(self, dx, dy)
 		local insideRt = math.min(rt - w2, 0)
 		dx = dx - insideLt - insideRt
 	end
-	if b.h <= self._contentAlloc.w then
+	if b.h <= self._contentAlloc.h then
 		local outTop = math.min(top - dy + h2, 0)
 		local outBot = math.max(bot - dy - h2, 0)
 		dy = 0 - outTop - outBot
