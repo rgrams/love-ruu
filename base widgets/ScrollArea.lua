@@ -48,7 +48,7 @@ local function debugDraw(self)
 end
 
 function ScrollArea.scroll(self, dx, dy)
-	self:updateChildrenBounds() -- Should really only happen when children change.
+	-- self:updateChildrenBounds() -- Should really only happen when children change.
 	local b = self.childBounds
 	local lt, rt, top, bot, w, h = b.lt, b.rt, b.top, b.bot, b.w, b.h
 
@@ -62,18 +62,14 @@ function ScrollArea.scroll(self, dx, dy)
 	-- For each axis:
 	if b.w <= self._contentAlloc.w then -- Bounds are smaller than mask area - don't allow children out.
 		-- Don't allow scrolling - remove original delta.
-		local outLt = math.min(lt - dx + w2, 0)
-		local outRt = math.max(rt - dx - w2, 0)
-		dx = 0 - outLt - outRt
+		dx = -w2 - b.lt -- Align to left.
 	else -- If bounds are larger than mask area - don't allow scrolling past.
 		local insideLt = math.max(lt + w2, 0)
 		local insideRt = math.min(rt - w2, 0)
 		dx = dx - insideLt - insideRt
 	end
 	if b.h <= self._contentAlloc.h then
-		local outTop = math.min(top - dy + h2, 0)
-		local outBot = math.max(bot - dy - h2, 0)
-		dy = 0 - outTop - outBot
+		dy = -h2 - b.top -- Align to top.
 	else
 		local insideTop = math.max(top + h2, 0)
 		local insideBot = math.min(bot - h2, 0)
