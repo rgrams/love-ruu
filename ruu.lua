@@ -1,7 +1,9 @@
 
-local Class = require "ruu.base-class"
-local defaultTheme = require "ruu.defaultTheme"
-local util = require "ruu.ruutilities"
+local _basePath = (...):gsub("ruu$", "")
+
+local Class = require(_basePath .. "base-class")
+local defaultTheme = require(_basePath .. "defaultTheme")
+local util = require(_basePath .. "ruutilities")
 
 local Ruu = Class:extend()
 
@@ -11,57 +13,46 @@ local RadioButton = require("ruu.widgets.RadioButton")
 local Slider = require("ruu.widgets.Slider")
 local InputField = require("ruu.widgets.InputField")
 
-Ruu.CLICK = hash("touch")
-Ruu.ENTER = hash("enter")
-Ruu.TEXT = hash("text")
-Ruu.DELETE = hash("delete")
-Ruu.BACKSPACE = hash("backspace")
-Ruu.CANCEL = hash("cancel")
+Ruu.MOUSE_MOVED = "mouse moved"
+Ruu.CLICK = "touch"
+Ruu.ENTER = "enter"
+Ruu.TEXT = "text"
+Ruu.DELETE = "delete"
+Ruu.BACKSPACE = "backspace"
+Ruu.CANCEL = "cancel"
 Ruu.NAV_DIRS = {
-	[hash("up")] = "up", [hash("down")] = "down", [hash("left")] = "left", [hash("right")] = "right",
-	[hash("next")] = "next", [hash("prev")] = "prev"
+	["up"] = "up", ["down"] = "down", ["left"] = "left", ["right"] = "right",
+	["next"] = "next", ["prev"] = "prev"
 }
-Ruu.END = hash("end")
-Ruu.HOME = hash("home")
-Ruu.SELECTION_MODIFIER = hash("selection modifier")
+Ruu.END = "end"
+Ruu.HOME = "home"
+Ruu.SELECTION_MODIFIER = "selection modifier"
 local IS_KEYBOARD = true
 local IS_NOT_KEYBOARD = false
 
 Ruu.layerPrecision = 10000 -- Number of different nodes allowed in each layer.
 -- Layer index multiplied by this in getDrawIndex() calculation.
 
-local function addWidget(self, name, widget)
-	self.allWidgets[widget] = name
+local function addWidget(self, widget)
+	self.allWidgets[widget] = true
 	self.enabledWidgets[widget] = true
-	assert(not self.widgetsByName[name], "Ruu.addWidget - Name conflict with name '"..tostring(name).."'.")
-	self.widgetsByName[name] = widget
 end
 
-function Ruu.rename(self, oldName, newName)
-	local widget = self.widgetsByName[oldName]
-	assert(widget, "Ruu.rename - No widget registered with name '"..tostring(oldName).."'.")
-	if oldName == newName then  return  end
-	assert(not self.widgetsByName[newName], "Ruu.rename - Name conflict with name '"..tostring(newName).."'.")
-	self.widgetsByName[oldName] = nil
-	self.widgetsByName[newName] = widget
-	self.allWidgets[widget] = newName
-end
-
-function Ruu.Button(self, nodeName, releaseFn, wgtTheme)
-	local btn = Button(self, self.owner, nodeName, releaseFn, wgtTheme or self.theme.Button)
-	addWidget(self, nodeName, btn)
+function Ruu.Button(self, themeData, releaseFn, wgtTheme)
+	local btn = Button(self, themeData, releaseFn, wgtTheme or self.theme.Button)
+	addWidget(self, btn)
 	return btn
 end
 
-function Ruu.ToggleButton(self, nodeName, releaseFn, isChecked, wgtTheme)
-	local btn = ToggleButton(self, self.owner, nodeName, releaseFn, isChecked, wgtTheme or self.theme.ToggleButton)
-	addWidget(self, nodeName, btn)
+function Ruu.ToggleButton(self, themeData, releaseFn, isChecked, wgtTheme)
+	local btn = ToggleButton(self, themeData, releaseFn, isChecked, wgtTheme or self.theme.ToggleButton)
+	addWidget(self, btn)
 	return btn
 end
 
-function Ruu.RadioButton(self, nodeName, releaseFn, isChecked, wgtTheme)
-	local btn = RadioButton(self, self.owner, nodeName, releaseFn, isChecked, wgtTheme or self.theme.RadioButton)
-	addWidget(self, nodeName, btn)
+function Ruu.RadioButton(self, themeData, releaseFn, isChecked, wgtTheme)
+	local btn = RadioButton(self, themeData, releaseFn, isChecked, wgtTheme or self.theme.RadioButton)
+	addWidget(self, btn)
 	return btn
 end
 
@@ -76,20 +67,16 @@ function Ruu.groupRadioButtons(self, widgets)
 	end
 end
 
-function Ruu.Slider(self, nodeName, releaseFn, fraction, length, wgtTheme)
-	local btn = Slider(self, self.owner, nodeName, releaseFn, fraction, length, wgtTheme or self.theme.Slider)
-	addWidget(self, nodeName, btn)
+function Ruu.Slider(self, themeData, releaseFn, fraction, length, wgtTheme)
+	local btn = Slider(self, themeData, releaseFn, fraction, length, wgtTheme or self.theme.Slider)
+	addWidget(self, btn)
 	return btn
 end
 
-function Ruu.InputField(self, nodeName, confirmFn, text, wgtTheme)
-	local btn = InputField(self, self.owner, nodeName, confirmFn, text, wgtTheme or self.theme.InputField)
-	addWidget(self, nodeName, btn)
+function Ruu.InputField(self, themeData, confirmFn, text, wgtTheme)
+	local btn = InputField(self, themeData, confirmFn, text, wgtTheme or self.theme.InputField)
+	addWidget(self, btn)
 	return btn
-end
-
-function Ruu.get(self, name)
-	return self.widgetsByName[name]
 end
 
 function Ruu.setEnabled(self, widget, enabled)
@@ -117,9 +104,7 @@ function Ruu.destroy(self, widget)
 		else  error("Ruu.destroy - Widget not found " .. tostring(widget))  end
 	end
 	self.setEnabled(self, widget, false)
-	local name = self.allWidgets[widget]
 	self.allWidgets[widget] = nil
-	self.widgetsByName[name] = nil
 	if widget.final then  widget:final()  end
 end
 
@@ -237,7 +222,7 @@ function Ruu.mouseMoved(self, x, y, dx, dy)
 		else
 			widgetIsHit = widget:hitCheck(x, y)
 			if widgetIsHit and widget.maskNode then
-				widgetIsHit = gui.pick_node(widget.maskNode, x, y)
+				widgetIsHit = widget.maskNode:hitCheck(x, y)
 			end
 		end
 		if widgetIsHit then
@@ -277,11 +262,12 @@ local function callIfExists(widget, fnName, ...)
 	end
 end
 
-function Ruu.input(self, action_id, action)
-	if not action_id then
-		self:mouseMoved(action.x, action.y, action.dx, action.dy)
-	elseif action_id == self.CLICK then
-		if action.pressed then
+-- function Ruu.input(self, action, action)
+function Ruu.input(self, action, value, change, rawChange, isRepeat, x, y, dx, dy, isTouch, presses)
+	if action == self.MOUSE_MOVED then
+		self:mouseMoved(x, y, dx, dy)
+	elseif action == self.CLICK then
+		if change == 1 then
 			if self.topHoveredWgt then
 				self.topHoveredWgt:press(self.mx, self.my, IS_NOT_KEYBOARD)
 				self:setFocus(self.topHoveredWgt, IS_NOT_KEYBOARD)
@@ -292,7 +278,7 @@ function Ruu.input(self, action_id, action)
 			else
 				self:setFocus(nil, IS_NOT_KEYBOARD)
 			end
-		elseif action.released then
+		elseif change == -1 then
 			local wasDragging = self.drags[1]
 			if wasDragging then  self:stopDrag()  end
 			if self.topHoveredWgt and self.topHoveredWgt.isPressed then
@@ -301,19 +287,19 @@ function Ruu.input(self, action_id, action)
 			-- Want to release the dragged node before updating hover.
 			if wasDragging then  self:mouseMoved(self.mx, self.my, 0, 0)  end
 		end
-	elseif action_id == self.ENTER then
-		if action.pressed then
+	elseif action == self.ENTER then
+		if change == 1 then
 			if self.focusedWidget then
 				self.focusedWidget:press(nil, nil, IS_KEYBOARD)
 			end
-		elseif action.released then
+		elseif change == -1 then
 			if self.focusedWidget and self.focusedWidget.isPressed then
 				self.focusedWidget:release(false, nil, nil, IS_KEYBOARD)
 			end
 		end
-	elseif self.NAV_DIRS[action_id] and (action.pressed or action.repeated) then
+	elseif self.NAV_DIRS[action] and (change == 1 or isRepeat) then
 		if self.focusedWidget then
-			local dirStr = self.NAV_DIRS[action_id]
+			local dirStr = self.NAV_DIRS[action]
 			local neighbor = self.focusedWidget:getFocusNeighbor(dirStr)
 			if neighbor == 1 then -- No neighbor, but used input.
 				return true
@@ -321,22 +307,22 @@ function Ruu.input(self, action_id, action)
 				self:setFocus(neighbor, IS_KEYBOARD)
 			end
 		end
-	elseif action_id == self.TEXT then
-		return callIfExists(self.focusedWidget, "textInput", action.text)
-	elseif action_id == self.BACKSPACE and (action.pressed or action.repeated) then
+	elseif action == self.TEXT then
+		return callIfExists(self.focusedWidget, "textInput", value)
+	elseif action == self.BACKSPACE and (change == 1 or isRepeat) then
 		return callIfExists(self.focusedWidget, "backspace")
-	elseif action_id == self.DELETE and (action.pressed or action.repeated) then
+	elseif action == self.DELETE and (change == 1 or isRepeat) then
 		return callIfExists(self.focusedWidget, "delete")
-	elseif action_id == self.HOME and action.pressed then
+	elseif action == self.HOME and change == 1 then
 		return callIfExists(self.focusedWidget, "home")
-	elseif action_id == self.END and action.pressed then
+	elseif action == self.END and change == 1 then
 		return callIfExists(self.focusedWidget, "end")
-	elseif action_id == self.CANCEL and action.pressed then
+	elseif action == self.CANCEL and change == 1 then
 		return callIfExists(self.focusedWidget, "cancel")
-	elseif action_id == self.SELECTION_MODIFIER then
-		if action.pressed then
+	elseif action == self.SELECTION_MODIFIER then
+		if change == 1 then
 			self.selectionModifierPresses = self.selectionModifierPresses + 1
-		elseif action.released then
+		elseif change == -1 then
 			self.selectionModifierPresses = self.selectionModifierPresses - 1
 		end
 	end
@@ -345,20 +331,15 @@ end
 function Ruu.registerLayers(self, layerList)
 	self.layerDepths = {}
 	for i,layer in ipairs(layerList) do
-		if type(layer) == "string" then  layer = hash(layer)
-		elseif type(layer) ~= "userdata" then
-			error("Ruu.registerLayers() - Invalid layer '" .. tostring(layer) .. "'. Must be a string or a hash.")
+		if type(layer) ~= "string" then
+			error("Ruu.registerLayers() - Invalid layer '" .. tostring(layer) .. "'. Must be a string.")
 		end
 		self.layerDepths[layer] = i * Ruu.layerPrecision
 	end
 end
 
-function Ruu.set(self, owner, getInput, theme)
-	assert(owner, "Ruu() - 'owner' must be specified.")
-	assert(type(getInput) == "function", "Ruu() - Requires a function for getting current input values.")
-	self.owner = owner
+function Ruu.set(self, theme)
 	self.allWidgets = {}
-	self.widgetsByName = {}
 	self.enabledWidgets = {}
 	self.hoveredWidgets = {}
 	self.focusedWidget = nil
@@ -366,8 +347,7 @@ function Ruu.set(self, owner, getInput, theme)
 	self.mx, self.my = 0, 0
 	self.layerDepths = {}
 	self.drags = {}
-	-- A dictionary of currently dragged widgets, with the number of active drags on each (in case of custom drags).
-	self.dragsOnWgt = {}
+	self.dragsOnWgt = {} -- A dictionary of currently dragged widgets, with the number of active drags on each (in case of custom drags).
 	self.selectionModifierPresses = 0
 end
 
