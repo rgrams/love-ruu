@@ -1,505 +1,148 @@
 
-local basePath = (...):gsub('[^%.]+$', '')
-local defaultTheme = require(basePath .. "defaultTheme")
+local Class = require "ruu.base-class"
+local defaultTheme = require "ruu.defaultTheme"
+local util = require "ruu.ruutilities"
 
-local baseWidgetPath = basePath .. "base widgets."
+local Ruu = Class:extend()
 
-local widgetClasses = {
-	Button = require(baseWidgetPath .. "Button"),
-	ToggleButton = require(baseWidgetPath .. "ToggleButton"),
-	RadioButton = require(baseWidgetPath .. "RadioButton"),
-	SliderBar = require(baseWidgetPath .. "SliderBar"),
-	SliderHandle = require(baseWidgetPath .. "SliderHandle"),
-	ScrollArea = require(baseWidgetPath .. "ScrollArea"),
-	InputField = require(baseWidgetPath .. "InputField"),
-	Panel = require(baseWidgetPath .. "Panel")
+local Button = require("ruu.widgets.Button")
+local ToggleButton = require("ruu.widgets.ToggleButton")
+local RadioButton = require("ruu.widgets.RadioButton")
+local Slider = require("ruu.widgets.Slider")
+local InputField = require("ruu.widgets.InputField")
+
+Ruu.CLICK = hash("touch")
+Ruu.ENTER = hash("enter")
+Ruu.TEXT = hash("text")
+Ruu.DELETE = hash("delete")
+Ruu.BACKSPACE = hash("backspace")
+Ruu.CANCEL = hash("cancel")
+Ruu.NAV_DIRS = {
+	[hash("up")] = "up", [hash("down")] = "down", [hash("left")] = "left", [hash("right")] = "right",
+	[hash("next")] = "next", [hash("prev")] = "prev"
 }
+Ruu.END = hash("end")
+Ruu.HOME = hash("home")
+Ruu.SELECTION_MODIFIER = hash("selection modifier")
+local IS_KEYBOARD = true
+local IS_NOT_KEYBOARD = false
 
-local LAYER_DEPTH_MULT = 10000
+Ruu.layerPrecision = 10000 -- Number of different nodes allowed in each layer.
+-- Layer index multiplied by this in getDrawIndex() calculation.
 
-local function registerLayers(self, layers)
-	local i = 1
-	for li=#layers,1,-1 do
-		local layerName = layers[li]
-		self.layers[layerName] = i * LAYER_DEPTH_MULT
-		i = i + 1
+local function addWidget(self, name, widget)
+	self.allWidgets[widget] = name
+	self.enabledWidgets[widget] = true
+	assert(not self.widgetsByName[name], "Ruu.addWidget - Name conflict with name '"..tostring(name).."'.")
+	self.widgetsByName[name] = widget
+end
+
+function Ruu.rename(self, oldName, newName)
+	local widget = self.widgetsByName[oldName]
+	assert(widget, "Ruu.rename - No widget registered with name '"..tostring(oldName).."'.")
+	if oldName == newName then  return  end
+	assert(not self.widgetsByName[newName], "Ruu.rename - Name conflict with name '"..tostring(newName).."'.")
+	self.widgetsByName[oldName] = nil
+	self.widgetsByName[newName] = widget
+	self.allWidgets[widget] = newName
+end
+
+function Ruu.Button(self, nodeName, releaseFn, wgtTheme)
+	local btn = Button(self, self.owner, nodeName, releaseFn, wgtTheme or self.theme.Button)
+	addWidget(self, nodeName, btn)
+	return btn
+end
+
+function Ruu.ToggleButton(self, nodeName, releaseFn, isChecked, wgtTheme)
+	local btn = ToggleButton(self, self.owner, nodeName, releaseFn, isChecked, wgtTheme or self.theme.ToggleButton)
+	addWidget(self, nodeName, btn)
+	return btn
+end
+
+function Ruu.RadioButton(self, nodeName, releaseFn, isChecked, wgtTheme)
+	local btn = RadioButton(self, self.owner, nodeName, releaseFn, isChecked, wgtTheme or self.theme.RadioButton)
+	addWidget(self, nodeName, btn)
+	return btn
+end
+
+function Ruu.groupRadioButtons(self, widgets)
+	local siblings = {} -- Copy the list so we're not messing with the user's table.
+	for i,widget in ipairs(widgets) do
+		if type(widget) == "string" then
+			widget = self:get(widget)
+		end
+		siblings[i] = widget
+		widget.siblings = siblings
 	end
 end
 
-local function getTopWidget(self, widgetList)
-	local topIndex, topWidget = -1, nil
-	for widget,_ in pairs(widgetList) do
-		local layerIndex = widget.layer and self.layers[widget.layer] or 0
-		local index = widget.drawIndex + layerIndex
-		if index > topIndex then
-			topIndex = index
-			topWidget = widget
-		end
-	end
-	return topWidget
+function Ruu.Slider(self, nodeName, releaseFn, fraction, length, wgtTheme)
+	local btn = Slider(self, self.owner, nodeName, releaseFn, fraction, length, wgtTheme or self.theme.Slider)
+	addWidget(self, nodeName, btn)
+	return btn
 end
 
--- Takes an object, a nonRecursive flag, and an optional ancestors table to add onto.
--- Returns:
---    A single ancestor object, if `nonRecursive` is true, or nil.
---    A sequence of ancestor objects that are Panels in child-parent order, or nil.
-local function getAncestorPanels(self, obj, nonRecursive, ancestors)
-	if not obj then  return  end
-	local p = obj.parent -- Don't include starting object: keep current focus and ancestors separate.
-	while p ~= obj.tree do
-		if not p then  break  end
-		if p.widgetType == "Panel" and self.allWidgets[p] then -- Widget can belong to a different Ruu instance.
-			if nonRecursive then  return p  end
-			ancestors = ancestors or {}
-			table.insert(ancestors, p)
-		end
-		p = p.parent
-	end
-	return ancestors
+function Ruu.InputField(self, nodeName, confirmFn, text, wgtTheme)
+	local btn = InputField(self, self.owner, nodeName, confirmFn, text, wgtTheme or self.theme.InputField)
+	addWidget(self, nodeName, btn)
+	return btn
 end
 
-local function setPanelsFocused(panels, focused)
-	if focused then
-		for i=#panels,1,-1 do
-			panels[i]:call("focus", i)
-		end
-	else
-		for i=#panels,1,-1 do
-			panels[i]:call("unfocus")
-			panels[i] = nil
-		end
-	end
+function Ruu.get(self, name)
+	return self.widgetsByName[name]
 end
 
-local function setFocus(self, widget, isKeyboard)
-	if widget == self.focusedWidget then  return  end
-	if self.focusedWidget then
-		self.focusedWidget:call("unfocus", isKeyboard)
-	end
-	self.focusedWidget = widget
-	if widget then
-		local firstAncestorPanel = getAncestorPanels(self, widget, true)
-		if self.focusedPanels[1] ~= firstAncestorPanel then
-			setPanelsFocused(self.focusedPanels, false)
-			if firstAncestorPanel then -- Of course will be `nil` if there isn't one.
-				self.focusedPanels[1] = firstAncestorPanel
-				getAncestorPanels(self, firstAncestorPanel, false, self.focusedPanels)
-				setPanelsFocused(self.focusedPanels, true)
-			end
-		end
-		-- New widget may have been an old ancestor panel, so focused it after panels.
-		widget:call("focus", isKeyboard)
-	else
-		setPanelsFocused(self.focusedPanels, false)
-	end
-end
-
-local function focusAtCursor(self)
-	local topWidget = getTopWidget(self, self.hoveredWidgets)
-	if topWidget then
-		setFocus(self, topWidget)
-	end
-	return topWidget
-end
-
-local function mouseMoved(self, x, y, dx, dy)
-	local didHit = false
-	self.mx, self.my = x, y
-
-	if self.drags then
-		didHit = true
-		for i,drag in ipairs(self.drags) do
-			drag.object:call("drag", dx, dy, drag.type)
-		end
-	end
-	-- Still hit-check all widgets while dragging, for scroll areas and drag-and-drop.
-	for widget,_ in pairs(self.enabledWidgets) do
-		-- Don't need to hitCheck dragged widgets, but make sure they are hovered.
-		local hitWgt = widget:hitCheck(x, y)
-		if hitWgt and widget.maskObject then
-			hitWgt = widget.maskObject:hitCheck(x, y)
-		end
-		if self.objDragCount[widget] or hitWgt then
-			didHit = true
-			if not widget.isHovered then
-				self.hoveredWidgets[widget] = true
-				widget:call("hover")
-				-- TODO: separate callback for hover while drag-and-dropping.
-			end
-			widget:call("mouseMovedFunc", x, y, dx, dy)
-		else
-			self.hoveredWidgets[widget] = nil
-			if widget.isHovered then
-				widget:call("unhover")
-			end
-		end
-	end
-	return didHit
-end
-
--- Starts a drag of a certain type for a specific object.
-local function startDrag(self, obj, dragType)
-	if obj.isDraggable then
-		local dragCount = (self.objDragCount[obj] or 0) + 1
-		self.objDragCount[obj] = dragCount
-		self.drags = self.drags or {}
-		local drag = { object = obj, type = dragType }
-		table.insert(self.drags, drag)
-	end
-end
-
--- Stop drags by some criteria: either "type" or "object".
---   (if drag[key] == `val` then  remove the drag.)
---   By default: dragType == nil (the default dragType).
-local function stopDrag(self, key, val)
-	key = key or "type"
-	if self.drags then
-		for i=#self.drags,1,-1 do
-			local drag = self.drags[i]
-			if drag[key] == val then
-				self.drags[i] = nil
-				local dragCount = self.objDragCount[drag.object] - 1
-				if dragCount <= 0 then  self.objDragCount[drag.object] = nil
-				else self.objDragCount[drag.object] = dragCount  end
-			end
-		end
-		if #self.drags == 0 then  self.drags = nil  end
-	end
-end
-
--- Calls the named function on an object and its scripts, stopping on the first truthy return value.
-local function consumableCall(obj, funcName, ...)
-	local r
-	if obj[funcName] then
-		r = obj[funcName](obj, ...)
-		if r then  return r  end
-	end
-	if obj.scripts then
-		for i=1,#obj.scripts do
-			local scr = obj.scripts[i]
-			if scr[funcName] then
-				r = scr[funcName](obj, ...)
-				if r then  return r  end
-			end
-		end
-	end
-end
-
-local navDirs = { up = 1, down = 1, left = 1, right = 1, next = 1, prev = 1 }
-
-local function input(self, inputType, action, value, change, isRepeat, x, y, dx, dy)
-	if action == "left click" then
-		if change == 1 then
-			-- Press and focus the topmost hovered node.
-			local topWidget = focusAtCursor(self)
-			if topWidget then
-				topWidget:call("press", self.mx, self.my)
-				startDrag(self, topWidget, nil) -- `nil` == default dragType.
-			end
-			return topWidget
-		elseif change == -1 then
-			-- TODO: Separate keyboard pressed and mouse pressed widgets?
-			--       Only release mouse pressed widget?
-			--       Allow mouse to release keyboard pressed widget?
-
-			stopDrag(self) -- Stop default drags.
-			-- Release hovered widgets if they are pressed
-			for widget,_ in pairs(self.hoveredWidgets) do
-				if widget.isPressed then
-					widget:call("release", false, self.mx, self.my)
-				end
-			end
-			if next(self.hoveredWidgets) then
-				return true
-			end
-		end
-	elseif action == "enter" then
-		if change == 1 then
-			if self.focusedWidget then
-				self.focusedWidget:call("press", nil, nil, true)
-				return true
-			end
-		elseif change == -1 then
-			if self.focusedWidget then
-				if self.focusedWidget.isPressed then
-					self.focusedWidget:call("release", nil, nil, nil, true)
-				end
-				return true
-			end
-		end
-	elseif navDirs[action] and value == 1 then
-		local widget = self.focusedWidget
-		if widget then
-			local neighbor = widget:getFocusNeighbor(action)
-			if neighbor == 1 then -- No neighbor, but used input.
-				return true
-			elseif neighbor then
-				setFocus(self, neighbor, true)
-				return true
-			end
-		end
-	elseif action == "scrollx" then
-		local didScroll = false
-		for widget,_ in pairs(self.hoveredWidgets) do
-			if widget.scroll then
-				widget:call("scroll", dx, dy)
-				didScroll = true
-			end
-		end
-		return didScroll
-	elseif action == "scrolly" then
-		local didScroll = false
-		for widget,_ in pairs(self.hoveredWidgets) do
-			if widget.scroll then
-				widget:call("scroll", dx, dy)
-				didScroll = true
-			end
-		end
-		return didScroll
-	elseif action == "text" then
-		local widget = self.focusedWidget
-		if widget and widget.textInput then
-			widget:call("textInput", value)
-			return true
-		end
-	elseif action == "backspace" and value == 1 then
-		local widget = self.focusedWidget
-		if widget and widget.backspace then
-			widget:call("backspace")
-			return true
-		end
-	elseif action == "delete" and value == 1 then
-		local widget = self.focusedWidget
-		if widget and widget.delete then
-			widget:call("delete")
-			return true
-		end
-	end
-
-	-- For any unused input:
-	-- Call a separate function name than normal input so we can't get infinite loops.
-	local r
-	if inputType == "focus" then
-		if self.focusedWidget then
-			r = consumableCall(self.focusedWidget, "ruuinput", action, value, change, isRepeat)
-			if r then  return r  end
-		end
-		for i,panel in ipairs(self.focusedPanels) do
-			r = consumableCall(panel, "ruuinput", action, value, change, isRepeat)
-			if r then  return r  end
-		end
-	elseif inputType == "hover" then
-		for widget,_ in pairs(self.hoveredWidgets) do
-			r = consumableCall(widget, "ruuinput", action, value, change, isRepeat)
-			if r then  return r  end
-		end
-	end
-end
-
-local DEF_HOVER_ACTIONS = { pan = 1, scrollx = 1, scrolly = 1 }
-
-local function inputWrapper(self, hoverActions, action, value, change, rawChange, isRepeat, x, y, dx, dy)
-	if action == "updateCursor" then
-		self:mouseMoved(x, y, dx, dy)
-	else
-		local actionType = (hoverActions or DEF_HOVER_ACTIONS)[action] and "hover" or "focus"
-		return self:input(actionType, action, value, change, isRepeat, x, y, dx, dy)
-	end
-end
-
-local function setWidgetEnabled(self, widget, enabled)
+function Ruu.setEnabled(self, widget, enabled)
 	self.enabledWidgets[widget] = enabled or nil
 	widget.isEnabled = enabled
 
 	if not enabled then
-		self.hoveredWidgets[widget] = nil
-		if self.objDragCount[widget] then  stopDrag(self, "object", widget)  end
+		if self.dragsOnWgt[widget] then  self:stopDragsOnWidget(widget)  end
+		if self.hoveredWidgets[widget] then
+			self.hoveredWidgets[widget] = nil
+			self:mouseMoved(self.mx, self.my, 0, 0)
+		end
 		if self.focusedWidget == widget then
-			widget:call("unfocus")
-			self.focusedWidget = nil -- Just remove it, don't change ancestor panel focus.
+			widget:unfocus()
+			self.focusedWidget = nil
 		end
-		if widget.isHovered then  widget:call("unhover")  end
-		if widget.isPressed then  widget:call("release", true)  end
+		if widget.isPressed then  widget:release(true)  end
 	end
 end
 
-local destroyRadioButton
-
-local function destroyWidget(self, widget)
-	setWidgetEnabled(self, widget, false)
+function Ruu.destroy(self, widget)
+	if not self.allWidgets[widget] then
+		local t = type(widget)
+		if t ~= "table" then  error("Ruu.destroy - Requires a widget object, not '" .. tostring(widget) .. "' of type '" .. t .. "'.")
+		else  error("Ruu.destroy - Widget not found " .. tostring(widget))  end
+	end
+	self.setEnabled(self, widget, false)
+	local name = self.allWidgets[widget]
 	self.allWidgets[widget] = nil
-	if widget.widgetType == "RadioButton" then
-		destroyRadioButton(self, widget)
+	self.widgetsByName[name] = nil
+	if widget.final then  widget:final()  end
+end
+
+function Ruu.setFocus(self, widget, isKeyboard)
+	if widget == self.focusedWidget then  return  end
+	if self.focusedWidget then
+		self.focusedWidget:unfocus(isKeyboard)
 	end
+	self.focusedWidget = widget
+	if widget then  widget:focus(isKeyboard)  end
 end
 
-local function makeWidget(self, widgetType, obj, isEnabled, themeType, theme)
-	assert(obj, "Ruu - make " .. widgetType .. " passed a nil object.")
-	obj.ruu = self
-	-- UI Widget Lists
-	self.allWidgets[obj] = true
-	if isEnabled then
-		self.enabledWidgets[obj] = true
-		obj.isEnabled = true
-	end
-	-- Theme
-	obj.themeType, obj.theme = themeType or widgetType, theme or self.theme
-	-- Widget Base Functions - hover, unhover, press, release, etc.
-	obj.widgetType = widgetType
-	for k,v in pairs(widgetClasses[widgetType]) do
-		obj[k] = v
-	end
-	-- Neighbors
-	obj.neighbor = {}
-	-- State
-	obj.isHovered, obj.isFocused, obj.isPressed = false, false, false
-end
-
-local function makeButton(self, obj, isEnabled, releaseFunc, themeType, theme)
-	makeWidget(self, "Button", obj, isEnabled, themeType, theme)
-	obj.releaseFunc = releaseFunc -- User functions.
-	obj.theme[obj.themeType].init(obj)
-end
-
-local function makeToggleButton(self, obj, isEnabled, isChecked, releaseFunc, themeType, theme)
-	makeWidget(self, "ToggleButton", obj, isEnabled, themeType, theme)
-	obj.releaseFunc = releaseFunc
-	obj.isChecked = isChecked
-	obj.theme[obj.themeType].init(obj)
-end
-
--- Local var initialized above `destroyWidget`.
--- Destroy a single RadioButton.
-function destroyRadioButton(self, obj)
-	if obj.isChecked then
-		local _,sibToCheck = next(obj.siblings)
-		if sibToCheck then
-			sibToCheck.isChecked = true
-			sibToCheck.theme[sibToCheck.themeType].setChecked(sibToCheck)
-		end
-	end
-	for i,sib in ipairs(obj.siblings) do
-		local siblings = sib.siblings
-		for i,sibObj in ipairs(siblings) do
-			if sibObj == obj then
-				table.remove(siblings, i)
-				break
-			end
-		end
-	end
-	if self.allWidgets[obj] then
-		obj.widgetType = nil -- So destroyWidget doesn't call this function again in an infinite loop.
-		destroyWidget(self, obj)
-	end
-end
-
--- Makes a single RadioButton and adds it to an existing RadioButtonGroup.
-local function makeRadioButton(self, obj, sibling, isEnabled, isChecked, releaseFunc, themeType, theme)
-	assert(obj ~= sibling, "Ruu.makeRadioButton - Can't use the new object as the existing sibling. "..tostring(sibling))
-	makeWidget(self, "RadioButton", obj, isEnabled, themeType, theme)
-	obj.releaseFunc = releaseFunc
-	obj.isChecked = isChecked
-	obj.siblings = { sibling }
-	local siblings = sibling.siblings
-	for i,sib in ipairs(siblings) do
-		table.insert(sib.siblings, obj) -- Add new obj to all siblings' lists.
-		table.insert(obj.siblings, sib) -- Add each sibling to new obj's list.
-	end
-	table.insert(sibling.siblings, obj) -- Sibling won't have itself in its list, so it won't be in the iteration.
-	if obj.isChecked then
-		for i,sib in ipairs(obj.siblings) do
-			sib.isChecked = false
-			sib.theme[sib.themeType].setChecked(sib)
-		end
-	end
-	obj.theme[obj.themeType].init(obj)
-end
-
-local function makeRadioButtonGroup(self, objects, isEnabled, checkedObj, releaseFunc, themeType, theme)
-	for i,obj in ipairs(objects) do
-		makeWidget(self, "RadioButton", obj, isEnabled, themeType, theme)
-		obj.releaseFunc = releaseFunc
-		if obj == checkedObj then  obj.isChecked = true  end
-		obj.siblings = {}
-		for i,sibling in ipairs(objects) do
-			if sibling ~= obj then  table.insert(obj.siblings, sibling)  end
-		end
-		obj.theme[obj.themeType].init(obj)
-	end
-end
-
-local function makeSlider(self, barObj, handleObj, isEnabled, releaseFunc, dragFunc, fraction, length, offset, nudgeDist, barClickDist, themeType, theme)
-	fraction = fraction or 0
-	offset = offset or 0
-	length = length or 100
-	nudgeDist = nudgeDist or self.defaultSliderNudgeDist
-	barClickDist = barClickDist or self.defaultSliderBarClickDist
-
-	makeWidget(self, "SliderHandle", handleObj, isEnabled, themeType, theme)
-	makeWidget(self, "SliderBar", barObj, isEnabled, themeType, theme)
-	barObj.handle, handleObj.bar = handleObj, barObj
-
-	handleObj.fraction = fraction
-	handleObj.isDraggable = true
-	handleObj.fraction = fraction
-	handleObj.offset, handleObj.length = offset, length
-	handleObj.nudgeDist, handleObj.barClickDist = nudgeDist, barClickDist
-	handleObj:updatePos()
-	handleObj.releaseFunc, handleObj.dragFunc = releaseFunc, dragFunc
-
-	handleObj.theme[handleObj.themeType].init(handleObj)
-	barObj.theme[barObj.themeType].init(barObj)
-end
-
-local function makeScrollArea(self, obj, isEnabled, ox, oy, scrollDist, nudgeDist, themeType, theme)
-	assert(
-		obj.enableMask and obj.disableMask and obj.setOffset,
-		"Ruu.makeScrollArea - object: '" .. tostring(obj) .. "' is not a Mask."
-	)
-	ox, oy = ox or 0, oy or 0
-	scrollDist = scrollDist or self.defaultScrollAreaScrollDist
-	nudgeDist = nudgeDist or self.defaultScrollAreaNudgeDist
-
-	makeWidget(self, "ScrollArea", obj, isEnabled, themeType, theme)
-	obj.scrollX, obj.scrollY = 0, 0
-	obj.scrollDist, obj.nudgeDist = scrollDist, nudgeDist
-	obj.childBounds = { lt=0, rt=0, top=0, bot=0, w=0, h=0 }
-	obj:scroll(ox, oy)
-
-	obj.theme[obj.themeType].init(obj)
-end
-
-local function makeInputField(self, obj, textObj, maskObj, isEnabled, editFunc, confirmFunc, scrollToRight, themeType, theme)
-	makeWidget(self, "InputField", obj, isEnabled, themeType, theme)
-	obj.label = textObj
-	obj.mask = maskObj
-	obj.scrollX, obj.scrollToRight = 0, scrollToRight
-	obj.placeholderText = placeholderText
-	obj.editFunc, obj.confirmFunc = editFunc, confirmFunc
-	obj.text = textObj.text
-	obj.cursorI, obj.cursorX = 0, 0
-	obj.selection = {}
-	obj.isDraggable = true
-	obj:setCursorPos()
-	obj.theme[obj.themeType].init(obj)
-end
-
-local function makePanel(self, obj, isEnabled, themeType, theme)
-	makeWidget(self, "Panel", obj, isEnabled, themeType, theme)
-	obj.theme[obj.themeType].init(obj)
-end
-
-local function loopIndex(list, start, by)
-	return (start - 1 + by) % #list + 1
+local function loopedIndex(list, index)
+	return (index - 1) % #list + 1
 end
 
 local function findNextInMap(self, map, x, y, axis, dir)
 	local foundWidget = nil
 	while not foundWidget do
 		if axis == "y" then
-			y = loopIndex(map, y, dir)
+			y = loopedIndex(map, y + dir)
 		elseif axis == "x" then
-			x = loopIndex(map[y], x, dir)
+			x = loopedIndex(map[y], x + dir)
 		end
 		foundWidget = map[y][x]
 		if foundWidget == self then  break  end
@@ -507,24 +150,9 @@ local function findNextInMap(self, map, x, y, axis, dir)
 	return foundWidget ~= self and foundWidget or nil
 end
 
---[[
--- EMPTY CELLS MUST BE `FALSE`.
-local map_horizontal = {
-	[1] = { 1, 2, 3 }
-}
-local map_vertical = {
-	[1] = { 1 },
-	[2] = { 2 },
-	[3] = { 3 }
-}
-local map_square = {
-	[1] = { 1, 2, 3 },
-	[2] = { 1, 2, 3 },
-	[3] = { 1, 2, 3 }
-}
-]]
+-- WARNING: EMPTY CELLS IN MAP MUST BE `FALSE`, not `NIL`!
 
-local function mapNeighbors(self, map)
+function Ruu.mapNeighbors(self, map)
 	for y,row in ipairs(map) do
 		for x,widget in ipairs(row) do
 			if widget then -- Skip empty cells.
@@ -543,10 +171,10 @@ local function mapNeighbors(self, map)
 	end
 end
 
-local function mapNextPrev(self, map)
+function Ruu.mapNextPrev(self, map)
 	if #map <= 1 then  return  end
 
-	map = { map } -- Make into a 2D array.
+	map = { map } -- Make into a 2D array so findNextInMap just works.
 
 	for i,widget in ipairs(map[1]) do
 		if widget then
@@ -556,53 +184,191 @@ local function mapNextPrev(self, map)
 	end
 end
 
-local function new(getInput, baseTheme)
-	assert(type(getInput) == "function", "Ruu() - Requires a function for getting current input values.")
-	local self = {
-		allWidgets = {},
-		enabledWidgets = {},
-		hoveredWidgets = {},
-		focusedWidget = nil,
-		focusedPanels = {},
-		drags = nil,
-		objDragCount = {},
-		startDrag = startDrag,
-		stopDrag = stopDrag,
-		theme = baseTheme or defaultTheme,
-		mouseMoved = mouseMoved,
-		mx = 0, my = 0,
-		input = input,
-		getInput = getInput,
-		inputWrapper = inputWrapper,
-		registerLayers = registerLayers,
-		layers = {},
-		setFocus = setFocus,
-		focusAtCursor = focusAtCursor,
-
-		setWidgetEnabled = setWidgetEnabled,
-		destroyWidget = destroyWidget,
-
-		makeButton = makeButton,
-		makeToggleButton = makeToggleButton,
-
-		destroyRadioButton = destroyRadioButton,
-		makeRadioButton = makeRadioButton,
-		makeRadioButtonGroup = makeRadioButtonGroup,
-
-		makeSlider = makeSlider,
-		makeScrollArea = makeScrollArea,
-		makeInputField = makeInputField,
-		makePanel = makePanel,
-
-		mapNeighbors = mapNeighbors,
-		mapNextPrev = mapNextPrev,
-
-		defaultSliderNudgeDist = 5,
-		defaultSliderBarClickDist = 25,
-		defaultScrollAreaScrollDist = 20,
-		defaultScrollAreaNudgeDist = 20
-	}
-	return self
+function Ruu.startDrag(self, widget, dragType)
+	if widget.drag then
+		-- Keep track of whether or not we're dragging a widget as well as the number of different
+		-- drags (generally only 1), so we can know when there it's no longer being dragged.
+		local dragsOnWgt = (self.dragsOnWgt[widget] or 0) + 1
+		self.dragsOnWgt[widget] = dragsOnWgt
+		local drag = { widget = widget, type = dragType }
+		table.insert(self.drags, drag)
+	end
 end
 
-return new
+local function removeDrag(self, index)
+	local drag = self.drags[index]
+	self.drags[index] = nil
+	local dragsOnWgt = self.dragsOnWgt[drag.widget] - 1
+	dragsOnWgt = dragsOnWgt > 0 and dragsOnWgt or nil
+	self.dragsOnWgt[drag.widget] = dragsOnWgt
+end
+
+function Ruu.stopDrag(self, dragType)
+	for i=#self.drags,1,-1 do
+		if self.drags[i].type == dragType then
+			removeDrag(self, i)
+		end
+	end
+end
+
+function Ruu.stopDragsOnWidget(self, widget)
+	for i=#self.drags,1,-1 do
+		if self.drags[i].widget == widget then
+			removeDrag(self, i)
+		end
+	end
+end
+
+function Ruu.mouseMoved(self, x, y, dx, dy)
+	self.mx, self.my = x, y
+	local foundHit = false
+
+	if self.drags[1] then
+		foundHit = true
+		for i,drag in ipairs(self.drags) do
+			drag.widget:drag(dx, dy, drag.type)
+		end
+	end
+
+	for widget,_ in pairs(self.enabledWidgets) do
+		local widgetIsHit
+		if self.dragsOnWgt[widget] then
+			widgetIsHit = true
+		else
+			widgetIsHit = widget:hitCheck(x, y)
+			if widgetIsHit and widget.maskNode then
+				widgetIsHit = gui.pick_node(widget.maskNode, x, y)
+			end
+		end
+		if widgetIsHit then
+			foundHit = true
+			self.hoveredWidgets[widget] = true
+		else
+			self.hoveredWidgets[widget] = nil
+			if widget.isHovered then  widget:unhover()  end
+		end
+	end
+
+	if foundHit then
+		-- If dragging, only use a/the dragged widget as the top hovered widget.
+		local widgetDict = not self.drags[1] and self.hoveredWidgets or self.dragsOnWgt
+		local topWidget = util.getTopWidget(widgetDict, "node", self.layerDepths)
+		if self.topHoveredWgt and self.topHoveredWgt ~= topWidget then
+			self.topHoveredWgt:unhover()
+		end
+		self.topHoveredWgt = topWidget
+		if not self.topHoveredWgt.isHovered then
+			self.topHoveredWgt:hover()
+		end
+	elseif self.topHoveredWgt then
+		self.topHoveredWgt:unhover()
+		self.topHoveredWgt = nil
+	end
+end
+
+local function isDraggable(widget)
+	return widget.drag
+end
+
+local function callIfExists(widget, fnName, ...)
+	if widget and widget[fnName] then
+		widget[fnName](widget, ...)
+		return true
+	end
+end
+
+function Ruu.input(self, action_id, action)
+	if not action_id then
+		self:mouseMoved(action.x, action.y, action.dx, action.dy)
+	elseif action_id == self.CLICK then
+		if action.pressed then
+			if self.topHoveredWgt then
+				self.topHoveredWgt:press(self.mx, self.my, IS_NOT_KEYBOARD)
+				self:setFocus(self.topHoveredWgt, IS_NOT_KEYBOARD)
+				-- Start drag - do it on mouse down instead of mouse move so we can easily set up initial drag offsets, etc.
+				local topDraggableWgt = util.getTopWidget(self.hoveredWidgets, "node", self.layerDepths, isDraggable)
+				if topDraggableWgt then  self:startDrag(topDraggableWgt)  end
+				return true
+			else
+				self:setFocus(nil, IS_NOT_KEYBOARD)
+			end
+		elseif action.released then
+			local wasDragging = self.drags[1]
+			if wasDragging then  self:stopDrag()  end
+			if self.topHoveredWgt and self.topHoveredWgt.isPressed then
+				self.topHoveredWgt:release(nil, self.mx, self.my, IS_NOT_KEYBOARD)
+			end
+			-- Want to release the dragged node before updating hover.
+			if wasDragging then  self:mouseMoved(self.mx, self.my, 0, 0)  end
+		end
+	elseif action_id == self.ENTER then
+		if action.pressed then
+			if self.focusedWidget then
+				self.focusedWidget:press(nil, nil, IS_KEYBOARD)
+			end
+		elseif action.released then
+			if self.focusedWidget and self.focusedWidget.isPressed then
+				self.focusedWidget:release(false, nil, nil, IS_KEYBOARD)
+			end
+		end
+	elseif self.NAV_DIRS[action_id] and (action.pressed or action.repeated) then
+		if self.focusedWidget then
+			local dirStr = self.NAV_DIRS[action_id]
+			local neighbor = self.focusedWidget:getFocusNeighbor(dirStr)
+			if neighbor == 1 then -- No neighbor, but used input.
+				return true
+			elseif neighbor then
+				self:setFocus(neighbor, IS_KEYBOARD)
+			end
+		end
+	elseif action_id == self.TEXT then
+		return callIfExists(self.focusedWidget, "textInput", action.text)
+	elseif action_id == self.BACKSPACE and (action.pressed or action.repeated) then
+		return callIfExists(self.focusedWidget, "backspace")
+	elseif action_id == self.DELETE and (action.pressed or action.repeated) then
+		return callIfExists(self.focusedWidget, "delete")
+	elseif action_id == self.HOME and action.pressed then
+		return callIfExists(self.focusedWidget, "home")
+	elseif action_id == self.END and action.pressed then
+		return callIfExists(self.focusedWidget, "end")
+	elseif action_id == self.CANCEL and action.pressed then
+		return callIfExists(self.focusedWidget, "cancel")
+	elseif action_id == self.SELECTION_MODIFIER then
+		if action.pressed then
+			self.selectionModifierPresses = self.selectionModifierPresses + 1
+		elseif action.released then
+			self.selectionModifierPresses = self.selectionModifierPresses - 1
+		end
+	end
+end
+
+function Ruu.registerLayers(self, layerList)
+	self.layerDepths = {}
+	for i,layer in ipairs(layerList) do
+		if type(layer) == "string" then  layer = hash(layer)
+		elseif type(layer) ~= "userdata" then
+			error("Ruu.registerLayers() - Invalid layer '" .. tostring(layer) .. "'. Must be a string or a hash.")
+		end
+		self.layerDepths[layer] = i * Ruu.layerPrecision
+	end
+end
+
+function Ruu.set(self, owner, getInput, theme)
+	assert(owner, "Ruu() - 'owner' must be specified.")
+	assert(type(getInput) == "function", "Ruu() - Requires a function for getting current input values.")
+	self.owner = owner
+	self.allWidgets = {}
+	self.widgetsByName = {}
+	self.enabledWidgets = {}
+	self.hoveredWidgets = {}
+	self.focusedWidget = nil
+	self.theme = theme or defaultTheme
+	self.mx, self.my = 0, 0
+	self.layerDepths = {}
+	self.drags = {}
+	-- A dictionary of currently dragged widgets, with the number of active drags on each (in case of custom drags).
+	self.dragsOnWgt = {}
+	self.selectionModifierPresses = 0
+end
+
+return Ruu
