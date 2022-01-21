@@ -14,7 +14,7 @@ local Slider = require("ruu.widgets.Slider")
 local InputField = require("ruu.widgets.InputField")
 
 Ruu.MOUSE_MOVED = "mouse moved"
-Ruu.CLICK = "touch"
+Ruu.CLICK = "click"
 Ruu.ENTER = "enter"
 Ruu.TEXT = "text"
 Ruu.DELETE = "delete"
