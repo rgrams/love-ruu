@@ -59,9 +59,6 @@ end
 function Ruu.groupRadioButtons(self, widgets)
 	local siblings = {} -- Copy the list so we're not messing with the user's table.
 	for i,widget in ipairs(widgets) do
-		if type(widget) == "string" then
-			widget = self:get(widget)
-		end
 		siblings[i] = widget
 		widget.siblings = siblings
 	end
