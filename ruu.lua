@@ -7,11 +7,11 @@ local util = require(_basePath .. "ruutilities")
 
 local Ruu = Class:extend()
 
-local Button = require("ruu.widgets.Button")
-local ToggleButton = require("ruu.widgets.ToggleButton")
-local RadioButton = require("ruu.widgets.RadioButton")
-local Slider = require("ruu.widgets.Slider")
-local InputField = require("ruu.widgets.InputField")
+local Button = require(_basePath .. "widgets.Button")
+local ToggleButton = require(_basePath .. "widgets.ToggleButton")
+local RadioButton = require(_basePath .. "widgets.RadioButton")
+local Slider = require(_basePath .. "widgets.Slider")
+local InputField = require(_basePath .. "widgets.InputField")
 
 Ruu.MOUSE_MOVED = "mouse moved"
 Ruu.CLICK = "click"

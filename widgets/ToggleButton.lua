@@ -1,5 +1,7 @@
 
-local Button = require "ruu.widgets.Button"
+local _basePath = (...):gsub("widgets.ToggleButton$", "")
+local Button = require(_basePath .. "widgets.Button")
+
 local ToggleButton = Button:extend()
 
 function ToggleButton.set(self, ruu, owner, nodeName, releaseFn, isChecked, wgtTheme)

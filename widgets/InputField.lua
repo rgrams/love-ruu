@@ -1,8 +1,10 @@
 
-local Button = require "ruu.widgets.Button"
+local _basePath = (...):gsub("widgets.InputField$", "")
+local Button = require(_basePath .. "widgets.Button")
+
 local InputField = Button:extend()
 
-local util = require "ruu.ruutilities"
+local util = require(_basePath.. "ruutilities")
 
 local endChar = "|"
 

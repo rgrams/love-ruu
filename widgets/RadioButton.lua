@@ -1,5 +1,6 @@
 
-local Button = require "ruu.widgets.Button"
+local _basePath = (...):gsub("widgets.RadioButton$", "")
+local Button = require(_basePath .. "widgets.Button")
 
 local RadioButton = Button:extend()
 

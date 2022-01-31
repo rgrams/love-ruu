@@ -1,5 +1,7 @@
 
-local Class = require "ruu.base-class"
+local _basePath = (...):gsub("widgets.Button$", "")
+local Class = require(_basePath .. "base-class")
+
 local Button = Class:extend()
 
 Button.isHovered = false

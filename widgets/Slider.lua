@@ -1,5 +1,6 @@
 
-local Button = require "ruu.widgets.Button"
+local _basePath = (...):gsub("widgets.Slider$", "")
+local Button = require(_basePath .. "widgets.Button")
 
 local Slider = Button:extend()
 
