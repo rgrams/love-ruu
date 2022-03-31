@@ -124,6 +124,7 @@ end
 
 function Slider.drag(self)
 	-- self.angle = self.fraction * math.pi
+	self.object.kx = self.fraction - 0.5
 end
 
 --[[
