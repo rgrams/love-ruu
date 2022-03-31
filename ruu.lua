@@ -57,11 +57,7 @@ function Ruu.RadioButton(self, themeData, releaseFn, isChecked, wgtTheme)
 end
 
 function Ruu.groupRadioButtons(self, widgets)
-	local siblings = {} -- Copy the list so we're not messing with the user's table.
-	for i,widget in ipairs(widgets) do
-		siblings[i] = widget
-		widget.siblings = siblings
-	end
+	RadioButton.setGroup(widgets)
 end
 
 function Ruu.Slider(self, themeData, releaseFn, fraction, length, wgtTheme)

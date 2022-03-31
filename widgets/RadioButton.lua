@@ -1,13 +1,17 @@
 
-local _basePath = (...):gsub("widgets.RadioButton$", "")
-local Button = require(_basePath .. "widgets.Button")
+local _basePath = (...):gsub("RadioButton$", "")
+local ToggleButton = require(_basePath .. "ToggleButton")
 
-local RadioButton = Button:extend()
+local RadioButton = ToggleButton:extend()
 
--- self.siblings - Can be nil if it hasn't been set as part of a group yet.
-function RadioButton.set(self, ruu, owner, nodeName, releaseFn, isChecked, wgtTheme)
-	self.isChecked = isChecked -- Needs to be set before theme.init.
-	RadioButton.super.set(self, ruu, owner, nodeName, releaseFn, wgtTheme)
+-- NOTE: `self.siblings` can be nil if it hasn't been set as part of a group yet.
+
+function RadioButton.setGroup(widgets)
+	local siblings = {} -- Copy the list so we're not messing with the user's table.
+	for i,widget in ipairs(widgets) do
+		siblings[i] = widget
+		widget.siblings = siblings -- All siblings share the same table, which includes themselves.
+	end
 end
 
 function RadioButton.final(self)
@@ -19,7 +23,20 @@ function RadioButton.final(self)
 			end
 		end
 	end
-	self:setChecked(false)
+	-- NOTE: The user is responsible for checking another button if they delete the checked one.
+end
+
+function RadioButton.siblingWasChecked(self)
+	self.isChecked = false
+	self.wgtTheme.setChecked(self, false)
+end
+
+local function unCheckSiblings(self)
+	if self.siblings then
+		for i,widget in ipairs(self.siblings) do
+			if widget ~= self then  widget:siblingWasChecked()  end
+		end
+	end
 end
 
 function RadioButton.release(self, dontFire, mx, my, isKeyboard)
@@ -27,18 +44,14 @@ function RadioButton.release(self, dontFire, mx, my, isKeyboard)
 	if not dontFire then
 		if not self.isChecked then
 			self.isChecked = true
-			if self.siblings then
-				for i,widget in ipairs(self.siblings) do
-					if widget ~= self then  widget:siblingWasChecked()  end
-				end
-			end
+			unCheckSiblings(self)
 		end
 		-- Still call release function even if nothing happened (if we were already checked).
 		if self.releaseFn then
 			if self.releaseArgs then
-				self.releaseFn(self.owner, self, unpack(self.releaseArgs))
+				self.releaseFn(unpack(self.releaseArgs))
 			else
-				self.releaseFn(self.owner, self)
+				self.releaseFn(self)
 			end
 		end
 	end
@@ -49,28 +62,14 @@ end
 function RadioButton.setChecked(self, isChecked)
 	if isChecked and not self.isChecked then -- Check.
 		self.isChecked = true
-		if self.siblings then
-			for i,widget in ipairs(self.siblings) do
-				if widget ~= self then  widget:siblingWasChecked()  end
-			end
-		end
+		unCheckSiblings(self)
 		self.wgtTheme.setChecked(self, true)
 	elseif self.isChecked and not isChecked then -- Un-check
-		-- It's weird to un-check a radio button. Try setting the first sibling checked or do nothing.
-		if self.siblings then
-			for i,widget in ipairs(self.siblings) do
-				if widget ~= self then
-					widget:setChecked(true)
-					break
-				end
-			end
-		end
+		self.isChecked = false
+		self.wgtTheme.setChecked(self, false)
+		-- NOTE: It's weird to un-check a radio button.
+		--       The user is responsible for checking another button if they un-check the checked one.
 	end
-end
-
-function RadioButton.siblingWasChecked(self)
-	self.isChecked = false
-	self.wgtTheme.setChecked(self, false)
 end
 
 return RadioButton
