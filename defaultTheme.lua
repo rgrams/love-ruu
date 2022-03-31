@@ -48,16 +48,16 @@ M.ToggleButton = ToggleButton
 
 function ToggleButton.init(self, themeData)
 	ToggleButton.super.init(self, themeData)
-	self.angle = self.isChecked and math.pi/6 or 0
+	self.object.angle = self.isChecked and math.pi/6 or 0
 end
 
 function ToggleButton.release(self, dontFire, mx, my, isKeyboard)
 	ToggleButton.super.release(self)
-	self.angle = self.isChecked and math.pi/6 or 0
+	self.object.angle = self.isChecked and math.pi/6 or 0
 end
 
 function ToggleButton.setChecked(self, isChecked)
-	self.angle = self.isChecked and math.pi/6 or 0
+	self.object.angle = self.isChecked and math.pi/6 or 0
 end
 
 --##############################  RADIO-BUTTON  ##############################
