@@ -68,49 +68,137 @@ M.RadioButton = RadioButton
 local InputField = Button:extend()
 M.InputField = InputField
 
-function InputField.init(self, nodeName)
-	InputField.super.init(self, nodeName)
-	self.cursorNode = gui.get_node(nodeName .. "/cursor")
-	gui.set_enabled(self.cursorNode, self.isFocused)
-	self.selectionNode = gui.get_node(nodeName .. "/selection")
-	gui.set_enabled(self.selectionNode, false)
-	self.selectionNodePos = gui.get_position(self.selectionNode)
-	self.selectionNodeSize = gui.get_size(self.selectionNode)
+function InputField.init(self, themeData)
+	self.object = themeData
+	self.textObj = self.object.text
+	self.cursorObj = self.object.cursor
+	self.selectionObj = self.object.selection
+
+	if self.object.tree then
+		self.cursorObj:setVisible(self.isFocused)
+		self.selectionObj:setVisible(self.isFocused)
+	else
+		self.cursorObj.visible = self.isFocused
+		self.selectionObj.visible = self.isFocused
+	end
+
+	self.font = self.textObj.font
+	self.scrollOX = 0
+	self.textOriginX = self.textObj.pos.x
+
+	InputField.updateMaskSize(self)
+	InputField.updateText(self)
 end
 
 function InputField.focus(self, isKeyboard)
 	InputField.super.focus(self, isKeyboard)
-	gui.set_enabled(self.cursorNode, true)
-	gui.set_enabled(self.selectionNode, self.hasSelection)
+	self.cursorObj:setVisible(true)
+	self.selectionObj:setVisible(self.hasSelection)
 end
 
 function InputField.unfocus(self, isKeyboard)
 	InputField.super.unfocus(self, isKeyboard)
-	gui.set_enabled(self.cursorNode, false)
-	gui.set_enabled(self.selectionNode, false)
+	self.cursorObj:setVisible(false)
+	self.selectionObj:setVisible(false)
 end
 
-function InputField.updateCursor(self, cursorX, selectionTailX)
-	local pos = gui.get_position(self.cursorNode)
-	pos.x = cursorX
-	gui.set_position(self.cursorNode, pos)
-	if selectionTailX then
-		gui.set_enabled(self.selectionNode, true)
-		local selectionX = cursorX
-		local selectionWidth = selectionTailX - cursorX -- Width can be negative, it works fine.
-		self.selectionNodePos.x = selectionX
-		self.selectionNodeSize.x = selectionWidth
-		gui.set_position(self.selectionNode, self.selectionNodePos)
-		gui.set_size(self.selectionNode, self.selectionNodeSize)
+function InputField.updateSelection(self)
+	if self.selectionTailIdx then
+		InputField.updateSelectionXPos(self) -- Only need to update X pos now, and when scroll actually changes.
 	else
-		gui.set_enabled(self.selectionNode, false)
+		self.selectionTailX = nil
 	end
 end
 
+function InputField.updateSelectionXPos(self)
+	if self.hasSelection then
+		self.selectionTailX = InputField.getCharXOffset(self, self.selectionTailIdx) + self.scrollOX
+	end
+end
+
+-- Called from widget whenever text is changed.
 function InputField.updateText(self)
+	self.textObj.text = self.text
+	InputField.updateTotalTextWidth(self)
+	InputField.updateCursorPos(self)
 end
 
 function InputField.textRejected(self, rejectedText)
+end
+
+-- Save left and right edge positions of the text-mask, relative to the parent.
+-- Only called once, on init.
+-- TODO: Needs to be called again if the InputField changes size.
+function InputField.updateMaskSize(self)
+	local maskObj = self.object.mask
+	local pivotX = maskObj.px / 2
+	local width = maskObj._contentRect.w
+	local originX = 0
+	local centerX = originX - pivotX * width
+
+	self.maskWidth = width
+	self.maskLeftEdgeX, self.maskRightEdgeX = centerX - width/2, centerX + width/2
+end
+
+function InputField.updateTotalTextWidth(self)
+	self.totalTextWidth = self.font:getWidth(self.text)
+end
+
+function InputField.setScrollOffset(self, scrollOX)
+	-- if true then  return  end
+
+	local oldScrollOX = self.scrollOX
+	local normalViewWidth = self.maskRightEdgeX - self.maskLeftEdgeX
+	if self.totalTextWidth <= normalViewWidth then
+		scrollOX = 0
+	else -- Don't let the right edge of the text be inside the right edge of the mask.
+		local maxNegScroll = self.totalTextWidth - normalViewWidth
+		scrollOX = math.max(-maxNegScroll, scrollOX)
+	end
+
+	if scrollOX ~= oldScrollOX then
+		self.scrollOX = scrollOX
+		self.textObj:setPos(self.textOriginX + self.scrollOX)
+
+		InputField.updateSelectionXPos(self)
+	end
+end
+
+function InputField.scrollCharOffsetIntoView(self, x)
+	local scrolledX = x + self.scrollOX
+	if scrolledX > self.maskRightEdgeX then -- Scroll text to the left.
+		local distOutside = scrolledX - self.maskRightEdgeX
+		InputField.setScrollOffset(self, self.scrollOX - distOutside)
+	elseif scrolledX < self.maskLeftEdgeX then -- Scroll text to the right.
+		local distOutside = self.maskLeftEdgeX - scrolledX
+		InputField.setScrollOffset(self, self.scrollOX + distOutside)
+	else
+		InputField.setScrollOffset(self, self.scrollOX)
+	end
+end
+
+-- Gets the un-scrolled X pos of the -right edge- of the character at `charIdx`.
+function InputField.getCharXOffset(self, charIdx)
+	local preText = self.text:sub(0, charIdx)
+	return self.textOriginX + self.font:getWidth(preText)
+end
+
+-- Called from widget.
+function InputField.updateCursorPos(self)
+	local baseCursorX = InputField.getCharXOffset(self, self.cursorIdx)
+	InputField.scrollCharOffsetIntoView(self, baseCursorX)
+	self.cursorX = baseCursorX + self.scrollOX
+
+	self.cursorObj:setPos(self.cursorX - self.maskWidth/2)
+	if self.selectionTailX then
+		self.selectionObj:setVisible(true)
+		local selectionX = self.cursorX
+		local selectionWidth = self.selectionTailX - self.cursorX -- Width can be negative, it works fine.
+		self.selectionObj:setPos(self.maskLeftEdgeX + selectionX)
+		self.selectionObj:size(selectionWidth)
+	else
+		self.selectionObj:setVisible(false)
+	end
 end
 
 --##############################  SLIDER - HANDLE  ##############################
