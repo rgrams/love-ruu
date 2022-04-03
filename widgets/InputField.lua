@@ -3,6 +3,7 @@ local _basePath = (...):gsub("InputField$", "")
 local Button = require(_basePath .. "Button")
 
 local InputField = Button:extend()
+InputField.className = "InputField"
 
 function InputField.set(self, ruu, themeData, confirmFn, text, wgtTheme)
 	self.text = text and tostring(text) or ""

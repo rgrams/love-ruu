@@ -3,10 +3,15 @@ local _basePath = (...):gsub("widgets.Button$", "")
 local Class = require(_basePath .. "base-class")
 
 local Button = Class:extend()
+Button.className = "Button"
 
 Button.isHovered = false
 Button.isPressed = false
 Button.isFocused = false
+
+function Button.__tostring(self)
+	return "(Ruu "..self.className.." "..self.id..")"
+end
 
 function Button.set(self, ruu, themeData, releaseFn, wgtTheme)
 	self.ruu = ruu -- Only used for InputFields.

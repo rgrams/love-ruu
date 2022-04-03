@@ -3,6 +3,7 @@ local _basePath = (...):gsub("Slider$", "")
 local Button = require(_basePath .. "Button")
 
 local Slider = Button:extend()
+Slider.className = "Slider"
 
 Slider.nudgeDist = 5
 

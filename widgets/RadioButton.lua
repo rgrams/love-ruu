@@ -3,6 +3,7 @@ local _basePath = (...):gsub("RadioButton$", "")
 local ToggleButton = require(_basePath .. "ToggleButton")
 
 local RadioButton = ToggleButton:extend()
+RadioButton.className = "RadioBtn"
 
 -- NOTE: `self.siblings` can be nil if it hasn't been set as part of a group yet.
 

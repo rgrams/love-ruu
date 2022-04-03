@@ -3,6 +3,7 @@ local _basePath = (...):gsub("widgets.ToggleButton$", "")
 local Button = require(_basePath .. "widgets.Button")
 
 local ToggleButton = Button:extend()
+ToggleButton.className = "ToggleBtn"
 
 function ToggleButton.set(self, ruu, themeData, releaseFn, isChecked, wgtTheme)
 	self.isChecked = isChecked -- Needs to be set before theme.init.
