@@ -74,6 +74,8 @@ function InputField.init(self, themeData)
 	self.cursorObj = self.object.cursor
 	self.selectionObj = self.object.selection
 
+	setValue(self, 0.3)
+
 	if self.object.tree then
 		self.cursorObj:setVisible(self.isFocused)
 		self.selectionObj:setVisible(self.isFocused)
@@ -88,6 +90,22 @@ function InputField.init(self, themeData)
 
 	InputField.updateMaskSize(self)
 	InputField.updateText(self)
+end
+
+function InputField.hover(self)
+	setValue(self, 0.4)
+end
+
+function InputField.unhover(self)
+	setValue(self, 0.3)
+end
+
+function InputField.press(self)
+	setValue(self, 0.9)
+end
+
+function InputField.release(self)
+	setValue(self, self.isHovered and 0.4 or 0.3)
 end
 
 function InputField.focus(self, isKeyboard)
