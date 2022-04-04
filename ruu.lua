@@ -12,6 +12,7 @@ local ToggleButton = require(_basePath .. "widgets.ToggleButton")
 local RadioButton = require(_basePath .. "widgets.RadioButton")
 local Slider = require(_basePath .. "widgets.Slider")
 local InputField = require(_basePath .. "widgets.InputField")
+local Panel = require(_basePath .. "widgets.Panel")
 
 Ruu.MOUSE_MOVED = "mouse moved"
 Ruu.CLICK = "click"
@@ -72,6 +73,12 @@ function Ruu.InputField(self, themeData, confirmFn, text, wgtTheme)
 	return btn
 end
 
+function Ruu.Panel(self, themeData, wgtTheme)
+	local wgt = Panel(self, themeData, wgtTheme or self.theme.Panel)
+	addWidget(self, wgt)
+	return wgt
+end
+
 function Ruu.setEnabled(self, widget, enabled)
 	self.enabledWidgets[widget] = enabled or nil
 	widget.isEnabled = enabled
@@ -101,13 +108,65 @@ function Ruu.destroy(self, widget)
 	if widget.final then  widget:final()  end
 end
 
+-- Takes a widget, a nonRecursive flag, and an optional existing output table to add onto.
+-- Returns:
+--    If `nonRecursive` is true: a single ancestor Panel, or nil.
+--    Else: A list of ancestor Panels in child-parent order, or nil.
+local function getAncestorPanels(self, wgt, nonRecursive, outputList)
+	if not wgt then  return  end
+	local parentObj = wgt.themeData.parent -- Don't include starting object: keep current focus and ancestors separate.
+	local treeRoot = parentObj.tree
+	while parentObj ~= treeRoot do
+		if not parentObj then  break  end
+		wgt = parentObj.widget
+		if wgt and self.allWidgets[wgt] and wgt:is(Panel) then -- Widget can belong to a different Ruu instance.
+			if nonRecursive then
+				return wgt
+			else
+				outputList = outputList or {}
+				table.insert(outputList, wgt)
+			end
+		end
+		parentObj = parentObj.parent
+	end
+	return outputList
+end
+
+local function setPanelsFocused(panels, isFocused, isKeyboard)
+	if isFocused then
+		for i=#panels,1,-1 do
+			panels[i]:focus(isKeyboard, i)
+		end
+	else
+		for i=#panels,1,-1 do
+			panels[i]:unfocus(isKeyboard)
+			panels[i] = nil
+		end
+	end
+end
+
 function Ruu.setFocus(self, widget, isKeyboard)
 	if widget == self.focusedWidget then  return  end
 	if self.focusedWidget then
 		self.focusedWidget:unfocus(isKeyboard)
 	end
 	self.focusedWidget = widget
-	if widget then  widget:focus(isKeyboard)  end
+	if widget then
+		local firstAncestorPanel = getAncestorPanels(self, widget, true)
+		if self.focusedPanels[1] ~= firstAncestorPanel then
+			setPanelsFocused(self.focusedPanels, false, isKeyboard) -- Will clear self.focusedPanels.
+			if firstAncestorPanel then -- Of course will be `nil` if there isn't one.
+				self.focusedPanels[1] = firstAncestorPanel
+				-- Continue checking for ancestor panels from the 1st one found.
+				getAncestorPanels(self, firstAncestorPanel, false, self.focusedPanels)
+				setPanelsFocused(self.focusedPanels, true, isKeyboard)
+			end
+		end
+		-- New widget may have been an old ancestor panel, so focus it after panels.
+		widget:focus(isKeyboard)
+	else
+		setPanelsFocused(self.focusedPanels, false, isKeyboard)
+	end
 end
 
 local function loopedIndex(list, index)
@@ -336,6 +395,7 @@ function Ruu.set(self, theme)
 	self.enabledWidgets = {}
 	self.hoveredWidgets = {}
 	self.focusedWidget = nil
+	self.focusedPanels = {}
 	self.theme = theme or defaultTheme
 	self.mx, self.my = 0, 0
 	self.layerDepths = {}

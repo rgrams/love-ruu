@@ -19,6 +19,7 @@ function Button.set(self, ruu, themeData, releaseFn, wgtTheme)
 	self.isEnabled = true
 	self.neighbor = {}
 	self.themeData = themeData
+	themeData.widget = self
 	self.wgtTheme = wgtTheme
 	self.wgtTheme.init(self, self.themeData)
 end
