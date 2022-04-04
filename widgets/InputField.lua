@@ -167,8 +167,10 @@ end
 function InputField.getFocusNeighbor(self, dir)
 	if dir == "left" then
 		self:moveCursor(-1)
+		return true
 	elseif dir == "right" then
 		self:moveCursor(1)
+		return true
 	else
 		return self.neighbor[dir]
 	end
@@ -182,12 +184,14 @@ end
 
 function InputField.textInput(self, text)
 	self:insertText(text)
+	return true
 end
 
 function InputField.cancel(self)
 	self.text = self.oldText
 	self:selectAll()
 	self.wgtTheme.updateText(self)
+	return true
 end
 
 function InputField.backspace(self)
@@ -199,6 +203,7 @@ function InputField.backspace(self)
 		self.cursorIdx = math.max(0, self.cursorIdx - 1)
 		self:updateText(preCursorText .. postCursorText)
 	end
+	return true
 end
 
 function InputField.delete(self)
@@ -210,14 +215,17 @@ function InputField.delete(self)
 		-- Deleting in front of the cursor, so cursor index stays the same.
 		self:updateText(preCursorText .. postCursorText)
 	end
+	return true
 end
 
 function InputField.home(self)
 	self:setCursorIdx(0)
+	return true
 end
 
 InputField["end"] = function(self)
 	self:setCursorIdx(#self.text)
+	return true
 end
 
 return InputField

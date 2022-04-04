@@ -31,6 +31,8 @@ Ruu.SELECTION_MODIFIER = "selection modifier"
 local IS_KEYBOARD = true
 local IS_NOT_KEYBOARD = false
 
+Ruu.isHoverAction = {}
+
 Ruu.layerPrecision = 10000 -- Number of different nodes allowed in each layer.
 -- Layer index multiplied by this in getDrawIndex() calculation.
 
@@ -309,8 +311,7 @@ end
 
 local function callIfExists(widget, fnName, ...)
 	if widget and widget[fnName] then
-		widget[fnName](widget, ...)
-		return true
+		return widget[fnName](widget, ...)
 	end
 end
 
@@ -318,6 +319,7 @@ end
 function Ruu.input(self, action, value, change, rawChange, isRepeat, x, y, dx, dy, isTouch, presses)
 	if action == self.MOUSE_MOVED then
 		self:mouseMoved(x, y, dx, dy)
+		return true
 	elseif action == self.CLICK then
 		if change == 1 then
 			if self.topHoveredWgt then
@@ -338,44 +340,73 @@ function Ruu.input(self, action, value, change, rawChange, isRepeat, x, y, dx, d
 			end
 			-- Want to release the dragged node before updating hover.
 			if wasDragging then  self:mouseMoved(self.mx, self.my, 0, 0)  end
+			if self.topHoveredWgt then  return true  end
 		end
 	elseif action == self.ENTER then
 		if change == 1 then
 			if self.focusedWidget then
 				self.focusedWidget:press(nil, nil, IS_KEYBOARD)
+				return true
 			end
 		elseif change == -1 then
-			if self.focusedWidget and self.focusedWidget.isPressed then
-				self.focusedWidget:release(false, nil, nil, IS_KEYBOARD)
+			if self.focusedWidget then
+				if self.focusedWidget.isPressed then
+					self.focusedWidget:release(nil, nil, nil, IS_KEYBOARD)
+				end
+				return true
 			end
 		end
 	elseif self.NAV_DIRS[action] and (change == 1 or isRepeat) then
 		if self.focusedWidget then
 			local dirStr = self.NAV_DIRS[action]
 			local neighbor = self.focusedWidget:getFocusNeighbor(dirStr)
-			if neighbor == 1 then -- No neighbor, but used input.
+			if neighbor == true then -- No neighbor, but used input.
 				return true
 			elseif neighbor then
 				self:setFocus(neighbor, IS_KEYBOARD)
+				return true
 			end
 		end
 	elseif action == self.TEXT then
-		return callIfExists(self.focusedWidget, "textInput", value)
+		local r = callIfExists(self.focusedWidget, "textInput", value)
+		if r then  return r  end
 	elseif action == self.BACKSPACE and (change == 1 or isRepeat) then
-		return callIfExists(self.focusedWidget, "backspace")
+		local r = callIfExists(self.focusedWidget, "backspace")
+		if r then  return r  end
 	elseif action == self.DELETE and (change == 1 or isRepeat) then
-		return callIfExists(self.focusedWidget, "delete")
+		local r = callIfExists(self.focusedWidget, "delete")
+		if r then  return r  end
 	elseif action == self.HOME and change == 1 then
-		return callIfExists(self.focusedWidget, "home")
+		local r = callIfExists(self.focusedWidget, "home")
+		if r then  return r  end
 	elseif action == self.END and change == 1 then
-		return callIfExists(self.focusedWidget, "end")
+		local r = callIfExists(self.focusedWidget, "end")
+		if r then  return r  end
 	elseif action == self.CANCEL and change == 1 then
-		return callIfExists(self.focusedWidget, "cancel")
+		local r = callIfExists(self.focusedWidget, "cancel")
+		if r then  return r  end
 	elseif action == self.SELECTION_MODIFIER then
 		if change == 1 then
 			self.selectionModifierPresses = self.selectionModifierPresses + 1
 		elseif change == -1 then
 			self.selectionModifierPresses = self.selectionModifierPresses - 1
+		end
+	end
+
+	-- Pass on any unused input to hovered or focused widgets for custom uses.
+	if self.isHoverAction[action] then
+		for wgt,_ in pairs(self.hoveredWidgets) do
+			local r = callIfExists(wgt, "ruuInput", action, value, change, rawChange, isRepeat, x, y, dx, dy, isTouch, presses)
+			if r then  return r  end
+		end
+	else -- Is focus action.
+		if self.focusedWidget then
+			local r = callIfExists(self.focusedWidget, "ruuInput", action, value, change, rawChange, isRepeat, x, y, dx, dy, isTouch, presses)
+			if r then  return r  end
+		end
+		for i,panel in ipairs(self.focusedPanels) do
+			local r = callIfExists(panel, "ruuInput", action, value, change, rawChange, isRepeat, x, y, dx, dy, isTouch, presses)
+			if r then  return r  end
 		end
 	end
 end
