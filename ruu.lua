@@ -25,13 +25,14 @@ Ruu.NAV_DIRS = {
 	["up"] = "up", ["down"] = "down", ["left"] = "left", ["right"] = "right",
 	["next"] = "next", ["prev"] = "prev"
 }
+Ruu.SCROLL = "scroll"
 Ruu.END = "end"
 Ruu.HOME = "home"
 Ruu.SELECTION_MODIFIER = "selection modifier"
 local IS_KEYBOARD = true
 local IS_NOT_KEYBOARD = false
 
-Ruu.isHoverAction = {}
+Ruu.isHoverAction = { [Ruu.SCROLL] = true }
 
 Ruu.layerPrecision = 10000 -- Number of different nodes allowed in each layer.
 -- Layer index multiplied by this in getDrawIndex() calculation.
@@ -369,6 +370,9 @@ function Ruu.input(self, action, value, change, rawChange, isRepeat, x, y, dx, d
 		end
 	elseif action == self.TEXT then
 		local r = callIfExists(self.focusedWidget, "textInput", value)
+		if r then  return r  end
+	elseif action == self.SCROLL then
+		local r = callIfExists(self.topHoveredWgt, "scroll", dx, dy)
 		if r then  return r  end
 	elseif action == self.BACKSPACE and (change == 1 or isRepeat) then
 		local r = callIfExists(self.focusedWidget, "backspace")
