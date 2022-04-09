@@ -32,7 +32,7 @@ Ruu.SELECTION_MODIFIER = "selection modifier"
 local IS_KEYBOARD = true
 local IS_NOT_KEYBOARD = false
 
-Ruu.isHoverAction = { [Ruu.SCROLL] = true }
+Ruu.isHoverAction = { [Ruu.MOUSE_MOVED] = true, [Ruu.SCROLL] = true }
 
 Ruu.layerPrecision = 10000 -- Number of different nodes allowed in each layer.
 -- Layer index multiplied by this in getDrawIndex() calculation.
@@ -320,11 +320,29 @@ local function callIfExists(widget, fnName, ...)
 	end
 end
 
--- function Ruu.input(self, action, action)
+function Ruu.consumableCall(self, isHoverAction, fnName, ...)
+	local topWgt, wgtList
+
+	if isHoverAction then
+		topWgt, wgtList = self.topHoveredWgt, self.hoveredByDepth
+	else
+		topWgt, wgtList = self.focusedWidget, self.focusedPanels
+	end
+
+	if topWgt then
+		local r = callIfExists(topWgt, fnName, ...)
+		if r then  return r  end
+	end
+	for i,wgt in ipairs(wgtList) do
+		local r = callIfExists(wgt, fnName, ...)
+		if r then  return r  end
+	end
+end
+
 function Ruu.input(self, action, value, change, rawChange, isRepeat, x, y, dx, dy, isTouch, presses)
+	-- NOTE: Ruu consumes inputs that fire another callback (press, release, focus, etc.).
 	if action == self.MOUSE_MOVED then
 		self:mouseMoved(x, y, dx, dy)
-		return true
 	elseif action == self.CLICK then
 		if change == 1 then
 			if self.topHoveredWgt then
@@ -346,12 +364,14 @@ function Ruu.input(self, action, value, change, rawChange, isRepeat, x, y, dx, d
 		elseif change == -1 then
 			local wasDragging = self.drags[1]
 			if wasDragging then  self:stopDrag()  end
+			local shouldConsume = false
 			if self.topHoveredWgt and self.topHoveredWgt.isPressed then
 				self.topHoveredWgt:release(nil, self.mx, self.my, IS_NOT_KEYBOARD)
+				shouldConsume = true
 			end
 			-- Want to release the dragged node before updating hover.
 			if wasDragging then  self:mouseMoved(self.mx, self.my, 0, 0)  end
-			if self.topHoveredWgt then  return true  end
+			if shouldConsume then  return true  end
 		end
 	elseif action == self.ENTER then
 		if change == 1 then
@@ -360,10 +380,8 @@ function Ruu.input(self, action, value, change, rawChange, isRepeat, x, y, dx, d
 				return true
 			end
 		elseif change == -1 then
-			if self.focusedWidget then
-				if self.focusedWidget.isPressed then
-					self.focusedWidget:release(nil, nil, nil, IS_KEYBOARD)
-				end
+			if self.focusedWidget and self.focusedWidget.isPressed then
+				self.focusedWidget:release(nil, nil, nil, IS_KEYBOARD)
 				return true
 			end
 		end
@@ -408,21 +426,9 @@ function Ruu.input(self, action, value, change, rawChange, isRepeat, x, y, dx, d
 	end
 
 	-- Pass on any unused input to hovered or focused widgets for custom uses.
-	if self.isHoverAction[action] then
-		for wgt,_ in pairs(self.hoveredWidgets) do
-			local r = callIfExists(wgt, "ruuInput", action, value, change, rawChange, isRepeat, x, y, dx, dy, isTouch, presses)
-			if r then  return r  end
-		end
-	else -- Is focus action.
-		if self.focusedWidget then
-			local r = callIfExists(self.focusedWidget, "ruuInput", action, value, change, rawChange, isRepeat, x, y, dx, dy, isTouch, presses)
-			if r then  return r  end
-		end
-		for i,panel in ipairs(self.focusedPanels) do
-			local r = callIfExists(panel, "ruuInput", action, value, change, rawChange, isRepeat, x, y, dx, dy, isTouch, presses)
-			if r then  return r  end
-		end
-	end
+	local isHoverAction = self.isHoverAction[action]
+	local r = self:consumableCall(isHoverAction, "ruuInput", action, value, change, rawChange, isRepeat, x, y, dx, dy, isTouch, presses)
+	if r then  return r  end
 end
 
 function Ruu.registerLayers(self, layerList)
