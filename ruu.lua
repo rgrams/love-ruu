@@ -237,7 +237,7 @@ end
 
 local function removeDrag(self, index)
 	local drag = self.drags[index]
-	self.drags[index] = nil
+	table.remove(self.drags, index)
 	local dragsOnWgt = self.dragsOnWgt[drag.widget] - 1
 	dragsOnWgt = dragsOnWgt > 0 and dragsOnWgt or nil
 	self.dragsOnWgt[drag.widget] = dragsOnWgt
