@@ -31,5 +31,27 @@ function M.getTopWidget(widgetDict, layerDepths, conditionFn) -- find widget wit
 	return topWidget
 end
 
+local _layerDepths
+
+local function depthSorter(a, b)
+	local drawIdxA = M.getDrawIndex(a, _layerDepths)
+	local drawIdxB = M.getDrawIndex(b, _layerDepths)
+	return drawIdxA > drawIdxB
+end
+
+-- First item is the "top".
+function M.getListByDepth(widgetDict, outList, layerDepths)
+	outList = outList or {}
+	for i=1,#outList do
+		outList[i] = nil
+	end
+	for wgt,_ in pairs(widgetDict) do
+		table.insert(outList, wgt)
+	end
+	_layerDepths = layerDepths
+	table.sort(outList, depthSorter)
+	return outList
+end
+
 
 return M
