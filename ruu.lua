@@ -324,7 +324,8 @@ function Ruu.consumableCall(self, isHoverAction, fnName, ...)
 	local topWgt, wgtList
 
 	if isHoverAction then
-		topWgt, wgtList = self.topHoveredWgt, self.hoveredByDepth
+		-- Top hovered widget is included in `hoveredByDepth` list.
+		topWgt, wgtList = nil, self.hoveredByDepth
 	else
 		topWgt, wgtList = self.focusedWidget, self.focusedPanels
 	end
