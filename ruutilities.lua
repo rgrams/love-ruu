@@ -39,6 +39,11 @@ local function depthSorter(a, b)
 	return drawIdxA > drawIdxB
 end
 
+function M.sortByDepth(wgtList, layerDepths)
+	_layerDepths = layerDepths
+	table.sort(wgtList, depthSorter)
+end
+
 -- First item is the "top".
 function M.getListByDepth(widgetDict, outList, layerDepths)
 	outList = outList or {}

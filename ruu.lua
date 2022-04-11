@@ -82,21 +82,38 @@ function Ruu.Panel(self, themeData, wgtTheme)
 	return wgt
 end
 
+local function contains(list, item)
+	for i=1,#list do
+		if list[i] == item then
+			return i
+		end
+	end
+end
+
+local function clear(list)
+	for i=#list,1,-1 do
+		list[i] = nil
+	end
+end
+
 function Ruu.setEnabled(self, widget, enabled)
 	self.enabledWidgets[widget] = enabled or nil
 	widget.isEnabled = enabled
 
 	if not enabled then
-		if self.dragsOnWgt[widget] then  self:stopDragsOnWidget(widget)  end
-		if self.hoveredWidgets[widget] then
-			self.hoveredWidgets[widget] = nil
+		if self.dragsOnWgt[widget] then  self:stopDraggingWidget(widget)  end
+		if contains(self.hoveredWidgets, widget) then
 			self:mouseMoved(self.mx, self.my, 0, 0)
 		end
-		if self.focusedWidget == widget then
-			widget:unfocus()
-			self.focusedWidget = nil
+		if contains(self.focusedWidgets, widget) then
+			local topFocused = self.focusedWidgets[1]
+			if widget == topFocused then
+				self:setFocus(nil) -- If we disable the top focused widget, remove focus.
+			else
+				self:setFocus(topFocused) -- Otherwise just refresh the focused widget stack.
+			end
 		end
-		if widget.isPressed then  widget:release(true)  end
+		if widget.isPressed then  widget:release(1, true)  end
 	end
 end
 
@@ -135,40 +152,15 @@ local function getAncestorPanels(self, wgt, nonRecursive, outputList)
 	return outputList
 end
 
-local function setPanelsFocused(panels, isFocused, isKeyboard)
-	if isFocused then
-		for i=#panels,1,-1 do
-			panels[i]:focus(isKeyboard, i)
-		end
-	else
-		for i=#panels,1,-1 do
-			panels[i]:unfocus(isKeyboard)
-			panels[i] = nil
-		end
-	end
-end
-
 function Ruu.setFocus(self, widget, isKeyboard)
-	if widget == self.focusedWidget then  return  end
-	if self.focusedWidget then
-		self.focusedWidget:unfocus(isKeyboard)
-	end
-	self.focusedWidget = widget
+	-- We don't know what changed, so just unfocus all the old ones.
+	self:bubble(false, "unfocus", isKeyboard)
+	clear(self.focusedWidgets)
+
 	if widget then
-		local firstAncestorPanel = getAncestorPanels(self, widget, true)
-		if self.focusedPanels[1] ~= firstAncestorPanel then
-			setPanelsFocused(self.focusedPanels, false, isKeyboard) -- Will clear self.focusedPanels.
-			if firstAncestorPanel then -- Of course will be `nil` if there isn't one.
-				self.focusedPanels[1] = firstAncestorPanel
-				-- Continue checking for ancestor panels from the 1st one found.
-				getAncestorPanels(self, firstAncestorPanel, false, self.focusedPanels)
-				setPanelsFocused(self.focusedPanels, true, isKeyboard)
-			end
-		end
-		-- New widget may have been an old ancestor panel, so focus it after panels.
-		widget:focus(isKeyboard)
-	else
-		setPanelsFocused(self.focusedPanels, false, isKeyboard)
+		self.focusedWidgets[1] = widget
+		getAncestorPanels(self, widget, false, self.focusedWidgets)
+		self:bubble(false, "focus", isKeyboard)
 	end
 end
 
@@ -251,7 +243,7 @@ function Ruu.stopDrag(self, dragType)
 	end
 end
 
-function Ruu.stopDragsOnWidget(self, widget)
+function Ruu.stopDraggingWidget(self, widget)
 	for i=#self.drags,1,-1 do
 		if self.drags[i].widget == widget then
 			removeDrag(self, i)
@@ -259,137 +251,90 @@ function Ruu.stopDragsOnWidget(self, widget)
 	end
 end
 
+local function isPointOnWidget(widget, x, y)
+	if widget:hitCheck(x, y) then
+		if widget.maskNode then
+			return widget.maskNode:hitCheck(x, y)
+		else
+			return true
+		end
+	end
+end
+
 function Ruu.mouseMoved(self, x, y, dx, dy)
 	self.mx, self.my = x, y
-	local foundHit = false
+	local isDragging = self.drags[1]
 
-	if self.drags[1] then
-		foundHit = true
+	if isDragging then
 		for i,drag in ipairs(self.drags) do
 			drag.widget:drag(dx, dy, drag.type)
 		end
-	end
+		-- Don't update hover while dragging.
 
-	for widget,_ in pairs(self.enabledWidgets) do
-		local widgetIsHit
-		if self.dragsOnWgt[widget] then
-			widgetIsHit = true
-		else
-			widgetIsHit = widget:hitCheck(x, y)
-			if widgetIsHit and widget.maskNode then
-				widgetIsHit = widget.maskNode:hitCheck(x, y)
+		-- Still Check collision for drag-and-drop.
+		--[[
+		local hoveredWidgets = {}
+		for widget,_ in pairs(self.enabledWidgets) do
+			if isPointOnWidget(widget, x, y) then
+				table.insert(hoveredWidgets, widget)
 			end
 		end
-		if widgetIsHit then
-			foundHit = true
-			self.hoveredWidgets[widget] = true
-		else
-			self.hoveredWidgets[widget] = nil
-			if widget.isHovered then  widget:unhover()  end
+		if hoveredWidgets[1] then
+			util.sortByDepth(hoveredWidgets, self.layerDepths)
+			self:bubble(hoveredWidgets, "dragOver") -- TODO: change bubble to take a list.
+			-- TODO: Bubble an event for each drag.
 		end
-	end
-
-	self.hoveredByDepth = util.getListByDepth(self.hoveredWidgets, self.hoveredByDepth, self.layerDepths)
-
-	if foundHit then
-		local topWidget = self.hoveredByDepth[1]
-		-- If dragging, only use a/the dragged widget as the top hovered widget.
-		if self.drags[1] then
-			topWidget = util.getTopWidget(self.dragsOnWgt, self.layerDepths)
+		--]]
+	else -- Not dragging.
+		-- TODO: Some way to -not- unhover & re-hover everything on every mouse move?
+		self:bubble(true, "unhover")
+		clear(self.hoveredWidgets)
+		for widget,_ in pairs(self.enabledWidgets) do
+			if isPointOnWidget(widget, x, y) then
+				table.insert(self.hoveredWidgets, widget)
+			end
 		end
-		if self.topHoveredWgt and self.topHoveredWgt ~= topWidget then
-			self.topHoveredWgt:unhover()
+		if self.hoveredWidgets[1] then
+			util.sortByDepth(self.hoveredWidgets, self.layerDepths)
+			self:bubble(true, "hover")
 		end
-		self.topHoveredWgt = topWidget
-		if not self.topHoveredWgt.isHovered then
-			self.topHoveredWgt:hover()
-		end
-	elseif self.topHoveredWgt then
-		self.topHoveredWgt:unhover()
-		self.topHoveredWgt = nil
 	end
 end
 
-local function isDraggable(widget)
-	return widget.drag
-end
-
-local function callIfExists(widget, fnName, ...)
-	if widget and widget[fnName] then
-		return widget[fnName](widget, ...)
-	end
-end
-
-function Ruu.consumableCall(self, isHoverAction, fnName, ...)
-	local topWgt, wgtList
-
-	if isHoverAction then
-		-- Top hovered widget is included in `hoveredByDepth` list.
-		topWgt, wgtList = nil, self.hoveredByDepth
-	else
-		topWgt, wgtList = self.focusedWidget, self.focusedPanels
-	end
-
-	if topWgt then
-		local r = callIfExists(topWgt, fnName, ...)
-		if r then  return r  end
-	end
-	for i,wgt in ipairs(wgtList) do
-		local r = callIfExists(wgt, fnName, ...)
-		if r then  return r  end
+function Ruu.bubble(self, isHoverAction, fnName, ...)
+	local wgtList = isHoverAction and self.hoveredWidgets or self.focusedWidgets
+	for depth,wgt in ipairs(wgtList) do
+		if wgt[fnName] then
+			local r = wgt[fnName](wgt, depth, ...)
+			if r then  return r  end
+		end
 	end
 end
 
 function Ruu.input(self, action, value, change, rawChange, isRepeat, x, y, dx, dy, isTouch, presses)
-	-- NOTE: Ruu consumes inputs that fire another callback (press, release, focus, etc.).
 	if action == self.MOUSE_MOVED then
 		self:mouseMoved(x, y, dx, dy)
 	elseif action == self.CLICK then
 		if change == 1 then
-			if self.topHoveredWgt then
-				self.topHoveredWgt:press(self.mx, self.my, IS_NOT_KEYBOARD)
-				self:setFocus(self.topHoveredWgt, IS_NOT_KEYBOARD)
-				-- Start drag - do it on mouse down instead of mouse move so we can easily set up initial drag offsets, etc.
-				local topDraggableWgt
-				for i,wgt in ipairs(self.hoveredByDepth) do
-					if isDraggable(wgt) then
-						topDraggableWgt = wgt
-						break
-					end
-				end
-				if topDraggableWgt then  self:startDrag(topDraggableWgt)  end
-				return true
-			else
-				self:setFocus(nil, IS_NOT_KEYBOARD)
-			end
+			self:setFocus(self.hoveredWidgets[1], IS_NOT_KEYBOARD)
+			local r = self:bubble(true, "press", self.mx, self.my, IS_NOT_KEYBOARD)
+			if r then  return r  end
 		elseif change == -1 then
-			local wasDragging = self.drags[1]
-			if wasDragging then  self:stopDrag()  end
-			local shouldConsume = false
-			if self.topHoveredWgt and self.topHoveredWgt.isPressed then
-				self.topHoveredWgt:release(nil, self.mx, self.my, IS_NOT_KEYBOARD)
-				shouldConsume = true
-			end
-			-- Want to release the dragged node before updating hover.
-			if wasDragging then  self:mouseMoved(self.mx, self.my, 0, 0)  end
-			if shouldConsume then  return true  end
+			local r = self:bubble(true, "release", false, self.mx, self.my, IS_NOT_KEYBOARD)
+			if r then  return r  end
 		end
 	elseif action == self.ENTER then
 		if change == 1 then
-			if self.focusedWidget then
-				self.focusedWidget:press(nil, nil, IS_KEYBOARD)
-				return true
-			end
+			local r = self:bubble(false, "press", nil, nil, IS_KEYBOARD)
+			if r then  return r  end
 		elseif change == -1 then
-			if self.focusedWidget and self.focusedWidget.isPressed then
-				self.focusedWidget:release(nil, nil, nil, IS_KEYBOARD)
-				return true
-			end
+			local r = self:bubble(false, "release", false, nil, nil, IS_KEYBOARD)
+			if r then  return r  end
 		end
 	elseif self.NAV_DIRS[action] and (change == 1 or isRepeat) then
-		if self.focusedWidget then
+		if self.focusedWidgets[1] then
 			local dirStr = self.NAV_DIRS[action]
-			local neighbor = self.focusedWidget:getFocusNeighbor(dirStr)
+			local neighbor = self:bubble(false, "getFocusNeighbor", dirStr)
 			if neighbor == true then -- No neighbor, but used input.
 				return true
 			elseif neighbor then
@@ -398,25 +343,25 @@ function Ruu.input(self, action, value, change, rawChange, isRepeat, x, y, dx, d
 			end
 		end
 	elseif action == self.TEXT then
-		local r = callIfExists(self.focusedWidget, "textInput", value)
+		local r = self:bubble(false, "textInput", value)
 		if r then  return r  end
 	elseif action == self.SCROLL then
-		local r = callIfExists(self.topHoveredWgt, "scroll", dx, dy)
+		local r = self:bubble(true, "scroll", dx, dy)
 		if r then  return r  end
 	elseif action == self.BACKSPACE and (change == 1 or isRepeat) then
-		local r = callIfExists(self.focusedWidget, "backspace")
+		local r = self:bubble(false, "backspace")
 		if r then  return r  end
 	elseif action == self.DELETE and (change == 1 or isRepeat) then
-		local r = callIfExists(self.focusedWidget, "delete")
+		local r = self:bubble(false, "delete")
 		if r then  return r  end
 	elseif action == self.HOME and change == 1 then
-		local r = callIfExists(self.focusedWidget, "home")
+		local r = self:bubble(false, "home")
 		if r then  return r  end
 	elseif action == self.END and change == 1 then
-		local r = callIfExists(self.focusedWidget, "end")
+		local r = self:bubble(false, "end")
 		if r then  return r  end
 	elseif action == self.CANCEL and change == 1 then
-		local r = callIfExists(self.focusedWidget, "cancel")
+		local r = self:bubble(false, "cancel")
 		if r then  return r  end
 	elseif action == self.SELECTION_MODIFIER then
 		if change == 1 then
@@ -428,7 +373,7 @@ function Ruu.input(self, action, value, change, rawChange, isRepeat, x, y, dx, d
 
 	-- Pass on any unused input to hovered or focused widgets for custom uses.
 	local isHoverAction = self.isHoverAction[action]
-	local r = self:consumableCall(isHoverAction, "ruuInput", action, value, change, rawChange, isRepeat, x, y, dx, dy, isTouch, presses)
+	local r = self:bubble(isHoverAction, "ruuInput", action, value, change, rawChange, isRepeat, x, y, dx, dy, isTouch, presses)
 	if r then  return r  end
 end
 
@@ -446,9 +391,7 @@ function Ruu.set(self, theme)
 	self.allWidgets = {}
 	self.enabledWidgets = {}
 	self.hoveredWidgets = {}
-	self.focusedWidget = nil
-	self.focusedPanels = {}
-	self.hoveredByDepth = {}
+	self.focusedWidgets = {}
 	self.theme = theme or defaultTheme
 	self.mx, self.my = 0, 0
 	self.layerDepths = {}

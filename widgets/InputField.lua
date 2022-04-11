@@ -38,7 +38,8 @@ function InputField.confirmText(self)
 	end
 end
 
-function InputField.release(self, dontFire, mx, my, isKeyboard)
+function InputField.release(self, depth, dontFire, mx, my, isKeyboard)
+	if depth ~= 1 then  return  end
 	self.isPressed = false
 	if self.releaseFn and not dontFire then
 		fireCallback(self, self.releaseFn)
@@ -52,7 +53,8 @@ function InputField.release(self, dontFire, mx, my, isKeyboard)
 	self.wgtTheme.release(self, dontFire, mx, my, isKeyboard)
 end
 
-function InputField.focus(self, isKeyboard)
+function InputField.focus(self, depth, isKeyboard)
+	if depth ~= 1 then  return  end
 	if not self.isFocused then
 		self.isFocused = true
 		self.oldText = self.text -- Save in case of cancel.
@@ -61,9 +63,10 @@ function InputField.focus(self, isKeyboard)
 	self.wgtTheme.focus(self)
 end
 
-function InputField.unfocus(self, isKeyboard)
+function InputField.unfocus(self, depth, isKeyboard)
+	if depth ~= 1 then  return  end
 	self.isFocused = false
-	if self.isPressed then  self:release(true)  end -- Release without firing.
+	if self.isPressed then  self:release(depth, true)  end -- Release without firing.
 	if self.confirmFn then
 		self:confirmText()
 	end
@@ -164,7 +167,8 @@ function InputField.moveCursor(self, dx)
 end
 
 --------------------  Ruu Input Methods  --------------------
-function InputField.getFocusNeighbor(self, dir)
+function InputField.getFocusNeighbor(self, depth, dir)
+	if depth ~= 1 then  return  end
 	if dir == "left" then
 		self:moveCursor(-1)
 		return true
@@ -182,19 +186,22 @@ function InputField.setText(self, text)
 	self:updateText(text)
 end
 
-function InputField.textInput(self, text)
+function InputField.textInput(self, depth, text)
+	if depth ~= 1 then  return  end
 	self:insertText(text)
 	return true
 end
 
-function InputField.cancel(self)
+function InputField.cancel(self, depth)
+	if depth ~= 1 then  return  end
 	self.text = self.oldText
 	self:selectAll()
 	self.wgtTheme.updateText(self)
 	return true
 end
 
-function InputField.backspace(self)
+function InputField.backspace(self, depth)
+	if depth ~= 1 then  return  end
 	if self.hasSelection then
 		self:insertText("")
 	else
@@ -206,7 +213,8 @@ function InputField.backspace(self)
 	return true
 end
 
-function InputField.delete(self)
+function InputField.delete(self, depth)
+	if depth ~= 1 then  return  end
 	if self.hasSelection then
 		self:insertText("")
 	else
@@ -218,12 +226,14 @@ function InputField.delete(self)
 	return true
 end
 
-function InputField.home(self)
+function InputField.home(self, depth)
+	if depth ~= 1 then  return  end
 	self:setCursorIdx(0)
 	return true
 end
 
-InputField["end"] = function(self)
+InputField["end"] = function(self, depth)
+	if depth ~= 1 then  return  end
 	self:setCursorIdx(#self.text)
 	return true
 end

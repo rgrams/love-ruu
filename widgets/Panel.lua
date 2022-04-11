@@ -11,16 +11,16 @@ function Panel.set(self, ruu, themeData, wgtTheme)
 	Panel.super.set(self, ruu, themeData, nil, wgtTheme) -- No callback.
 end
 
-function Panel.focus(self, isKeyboard, depthIndex)
-	self.panelIndex = depthIndex or 1
+function Panel.focus(self, depth, isKeyboard)
+	self.panelIndex = depth
 	self.isFocused = true
-	self.wgtTheme.focus(self, isKeyboard, depthIndex)
+	self.wgtTheme.focus(self, depth, isKeyboard)
 end
 
-function Panel.unfocus(self, isKeyboard)
+function Panel.unfocus(self, depth, isKeyboard)
 	self.isFocused = false
-	self.wgtTheme.unfocus(self, isKeyboard)
-	if self.isPressed then  self:release(true)  end
+	self.wgtTheme.unfocus(self, depth, isKeyboard)
+	if self.isPressed then  self:release(depth, true)  end
 end
 
 return Panel
