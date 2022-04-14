@@ -118,6 +118,7 @@ function InputField.unfocus(self, isKeyboard)
 	InputField.super.unfocus(self, isKeyboard)
 	self.cursorObj:setVisible(false)
 	self.selectionObj:setVisible(false)
+	InputField.scrollCharOffsetIntoView(self, 0)
 end
 
 function InputField.updateSelection(self)
@@ -138,7 +139,9 @@ end
 function InputField.updateText(self)
 	self.textObj.text = self.text
 	InputField.updateTotalTextWidth(self)
-	InputField.updateCursorPos(self)
+	if self.isFocused then
+		InputField.updateCursorPos(self)
+	end
 end
 
 function InputField.textRejected(self, rejectedText)
