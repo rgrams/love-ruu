@@ -31,7 +31,7 @@ function InputField.confirmText(self)
 	local isRejected = fireCallback(self, self.confirmFn)
 	if isRejected then
 		local rejectedText = self.text
-		self:cancel()
+		self:cancel(1)
 		self.wgtTheme.textRejected(self, rejectedText)
 	else
 		self.oldText = self.text -- Save text for next time.
