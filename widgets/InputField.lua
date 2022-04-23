@@ -40,6 +40,7 @@ end
 
 function InputField.release(self, depth, dontFire, mx, my, isKeyboard)
 	if depth ~= 1 then  return  end
+	if not self.isPressed then  dontFire = true  end
 	self.isPressed = false
 	if self.releaseFn and not dontFire then
 		fireCallback(self, self.releaseFn)

@@ -68,6 +68,7 @@ end
 
 function Button.release(self, depth, dontFire, mx, my, isKeyboard)
 	if depth ~= 1 then  return  end
+	if not self.isPressed then  dontFire = true  end
 	self.isPressed = false
 	self.wgtTheme.release(self, dontFire, mx, my, isKeyboard)
 	if self.releaseFn and not dontFire then

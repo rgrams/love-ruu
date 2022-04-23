@@ -12,6 +12,7 @@ end
 
 function ToggleButton.release(self, depth, dontFire, mx, my, isKeyboard)
 	if depth ~= 1 then  return  end
+	if not self.isPressed then  dontFire = true  end
 	if not dontFire then
 		self.isChecked = not self.isChecked
 	end

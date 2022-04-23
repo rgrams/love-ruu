@@ -42,6 +42,7 @@ end
 
 function RadioButton.release(self, depth, dontFire, mx, my, isKeyboard)
 	if depth ~= 1 then  return  end
+	if not self.isPressed then  dontFire = true  end
 	self.isPressed = false
 	if not dontFire then
 		if not self.isChecked then
