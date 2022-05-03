@@ -88,8 +88,8 @@ function InputField.init(self, themeData)
 	self.scrollOX = 0
 	self.textOriginX = self.textObj.pos.x
 
-	InputField.updateMaskSize(self)
-	InputField.updateText(self)
+	self.wgtTheme.updateMaskSize(self)
+	self.wgtTheme.updateText(self)
 end
 
 function InputField.hover(self)
@@ -118,12 +118,12 @@ function InputField.unfocus(self, isKeyboard)
 	InputField.super.unfocus(self, isKeyboard)
 	self.cursorObj:setVisible(false)
 	self.selectionObj:setVisible(false)
-	InputField.scrollCharOffsetIntoView(self, 0)
+	self.wgtTheme.scrollCharOffsetIntoView(self, 0)
 end
 
 function InputField.updateSelection(self)
 	if self.selectionTailIdx then
-		InputField.updateSelectionXPos(self) -- Only need to update X pos now, and when scroll actually changes.
+		self.wgtTheme.updateSelectionXPos(self) -- Only need to update X pos now, and when scroll actually changes.
 	else
 		self.selectionTailX = nil
 	end
@@ -131,16 +131,16 @@ end
 
 function InputField.updateSelectionXPos(self)
 	if self.hasSelection then
-		self.selectionTailX = InputField.getCharXOffset(self, self.selectionTailIdx) + self.scrollOX
+		self.selectionTailX = self.wgtTheme.getCharXOffset(self, self.selectionTailIdx) + self.scrollOX
 	end
 end
 
 -- Called from widget whenever text is changed.
 function InputField.updateText(self)
 	self.textObj.text = self.text
-	InputField.updateTotalTextWidth(self)
+	self.wgtTheme.updateTotalTextWidth(self)
 	if self.isFocused then
-		InputField.updateCursorPos(self)
+		self.wgtTheme.updateCursorPos(self)
 	end
 end
 
@@ -181,7 +181,7 @@ function InputField.setScrollOffset(self, scrollOX)
 		self.scrollOX = scrollOX
 		self.textObj:setPos(self.textOriginX + self.scrollOX)
 
-		InputField.updateSelectionXPos(self)
+		self.wgtTheme.updateSelectionXPos(self)
 	end
 end
 
@@ -189,12 +189,12 @@ function InputField.scrollCharOffsetIntoView(self, x)
 	local scrolledX = x + self.scrollOX
 	if scrolledX > self.maskRightEdgeX then -- Scroll text to the left.
 		local distOutside = scrolledX - self.maskRightEdgeX
-		InputField.setScrollOffset(self, self.scrollOX - distOutside)
+		self.wgtTheme.setScrollOffset(self, self.scrollOX - distOutside)
 	elseif scrolledX < self.maskLeftEdgeX then -- Scroll text to the right.
 		local distOutside = self.maskLeftEdgeX - scrolledX
-		InputField.setScrollOffset(self, self.scrollOX + distOutside)
+		self.wgtTheme.setScrollOffset(self, self.scrollOX + distOutside)
 	else
-		InputField.setScrollOffset(self, self.scrollOX)
+		self.wgtTheme.setScrollOffset(self, self.scrollOX)
 	end
 end
 
@@ -206,8 +206,8 @@ end
 
 -- Called from widget.
 function InputField.updateCursorPos(self)
-	local baseCursorX = InputField.getCharXOffset(self, self.cursorIdx)
-	InputField.scrollCharOffsetIntoView(self, baseCursorX)
+	local baseCursorX = self.wgtTheme.getCharXOffset(self, self.cursorIdx)
+	self.wgtTheme.scrollCharOffsetIntoView(self, baseCursorX)
 	self.cursorX = baseCursorX + self.scrollOX
 
 	self.cursorObj:setPos(self.cursorX - self.maskWidth/2)
@@ -228,7 +228,7 @@ M.Slider = Slider
 
 function Slider.init(self, nodeName)
 	Slider.super.init(self, nodeName)
-	Slider.drag(self)
+	self.wgtTheme.drag(self)
 end
 
 function Slider.drag(self)
