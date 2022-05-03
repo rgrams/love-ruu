@@ -363,18 +363,16 @@ function Ruu.input(self, action, value, change, rawChange, isRepeat, x, y, dx, d
 	elseif action == self.CANCEL and change == 1 then
 		local r = self:bubble(false, "cancel")
 		if r then  return r  end
-	elseif action == self.SELECTION_MODIFIER then
-		if change == 1 then
-			self.selectionModifierPresses = self.selectionModifierPresses + 1
-		elseif change == -1 then
-			self.selectionModifierPresses = self.selectionModifierPresses - 1
-		end
 	end
 
 	-- Pass on any unused input to hovered or focused widgets for custom uses.
 	local isHoverAction = self.isHoverAction[action]
 	local r = self:bubble(isHoverAction, "ruuInput", action, value, change, rawChange, isRepeat, x, y, dx, dy, isTouch, presses)
 	if r then  return r  end
+end
+
+function Ruu.isSelectionModifierPressed(self)
+	return Input.isPressed(self.SELECTION_MODIFIER)
 end
 
 function Ruu.registerLayers(self, layerList)
@@ -397,7 +395,6 @@ function Ruu.set(self, theme)
 	self.layerDepths = {}
 	self.drags = {}
 	self.dragsOnWgt = {} -- A dictionary of currently dragged widgets, with the number of active drags on each (in case of custom drags).
-	self.selectionModifierPresses = 0
 end
 
 return Ruu

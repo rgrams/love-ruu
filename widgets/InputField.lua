@@ -132,9 +132,10 @@ end
 
 --------------------  Cursor Movement  --------------------
 function InputField.setCursorIdx(self, index)
-	if self.hasSelection and self.ruu.selectionModifierPresses == 0 then
+	local isSelecting = self.ruu:isSelectionModifierPressed()
+	if self.hasSelection and not isSelecting then
 		self:clearSelection()
-	elseif not self.hasSelection and self.ruu.selectionModifierPresses > 0 then
+	elseif not self.hasSelection and isSelecting then
 		self:startSelection(self.cursorIdx)
 	end
 	self.cursorIdx = math.max(0, math.min(#self.text, index))
@@ -144,7 +145,9 @@ end
 function InputField.moveCursor(self, dx)
 	if dx == 0 then  return  end
 
-	if self.hasSelection and self.ruu.selectionModifierPresses == 0 then
+	local isSelecting = self.ruu:isSelectionModifierPressed()
+
+	if self.hasSelection and not isSelecting then
 		if dx > 0 then
 			local selectionRightIdx = math.max(self.cursorIdx, self.selectionTailIdx)
 			self.cursorIdx = selectionRightIdx
@@ -155,7 +158,7 @@ function InputField.moveCursor(self, dx)
 		self:clearSelection()
 		self.wgtTheme.updateCursorPos(self)
 		return -- Skip normal cursor movement.
-	elseif not self.hasSelection and self.ruu.selectionModifierPresses > 0 then
+	elseif not self.hasSelection and isSelecting then
 		self:startSelection(self.cursorIdx)
 	end
 
