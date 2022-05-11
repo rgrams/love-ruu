@@ -68,7 +68,7 @@ function InputField.unfocus(self, depth, isKeyboard)
 	if depth ~= 1 then  return  end
 	self.isFocused = false
 	if self.isPressed then  self:release(depth, true)  end -- Release without firing.
-	if self.confirmFn then
+	if isKeyboard and self.isEnabled and self.confirmFn then
 		self:confirmText()
 	end
 	self.wgtTheme.unfocus(self, isKeyboard)
