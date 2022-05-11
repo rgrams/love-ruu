@@ -38,8 +38,8 @@ Ruu.layerPrecision = 10000 -- Number of different nodes allowed in each layer.
 -- Layer index multiplied by this in getDrawIndex() calculation.
 
 local function addWidget(self, widget)
-	self.allWidgets[widget] = true
-	self.enabledWidgets[widget] = true
+	self.allWgts[widget] = true
+	self.enabledWgts[widget] = true
 end
 
 function Ruu.Button(self, themeData, releaseFn, wgtTheme)
@@ -96,17 +96,30 @@ local function clear(list)
 	end
 end
 
+-- Get a - b.
+-- AKA: Get the list of items that are -only- in `a`, -not- in `b`.
+local function getSubtraction(a, b)
+	local has = {}
+	for i=1,#a do  has[ a[i] ] = true  end
+	for i=1,#b do  has[ b[i] ] = nil  end
+	local onlyInA = {}
+	for v,_ in pairs(has) do
+		table.insert(onlyInA, v)
+	end
+	return onlyInA
+end
+
 function Ruu.setEnabled(self, widget, enabled)
-	self.enabledWidgets[widget] = enabled or nil
+	self.enabledWgts[widget] = enabled or nil
 	widget.isEnabled = enabled
 
 	if not enabled then
 		if self.dragsOnWgt[widget] then  self:stopDraggingWidget(widget)  end
-		if contains(self.hoveredWidgets, widget) then
+		if contains(self.hoveredWgts, widget) then
 			self:mouseMoved(self.mx, self.my, 0, 0)
 		end
-		if contains(self.focusedWidgets, widget) then
-			local topFocused = self.focusedWidgets[1]
+		if contains(self.focusedWgts, widget) then
+			local topFocused = self.focusedWgts[1]
 			if widget == topFocused then
 				self:setFocus(nil) -- If we disable the top focused widget, remove focus.
 			else
@@ -118,13 +131,13 @@ function Ruu.setEnabled(self, widget, enabled)
 end
 
 function Ruu.destroy(self, widget)
-	if not self.allWidgets[widget] then
+	if not self.allWgts[widget] then
 		local t = type(widget)
 		if t ~= "table" then  error("Ruu.destroy - Requires a widget object, not '" .. tostring(widget) .. "' of type '" .. t .. "'.")
 		else  error("Ruu.destroy - Widget not found " .. tostring(widget))  end
 	end
 	self.setEnabled(self, widget, false)
-	self.allWidgets[widget] = nil
+	self.allWgts[widget] = nil
 	if widget.final then  widget:final()  end
 end
 
@@ -139,7 +152,7 @@ local function getAncestorPanels(self, wgt, nonRecursive, outputList)
 	while parentObj ~= treeRoot do
 		if not parentObj then  break  end
 		wgt = parentObj.widget
-		if wgt and self.allWidgets[wgt] and wgt:is(Panel) then -- Widget can belong to a different Ruu instance.
+		if wgt and self.allWgts[wgt] and wgt:is(Panel) then -- Widget can belong to a different Ruu instance.
 			if nonRecursive then
 				return wgt
 			else
@@ -154,13 +167,13 @@ end
 
 function Ruu.setFocus(self, widget, isKeyboard)
 	-- We don't know what changed, so just unfocus all the old ones.
-	self:bubble(false, "unfocus", isKeyboard)
-	clear(self.focusedWidgets)
+	self:bubble(self.focusedWgts, "unfocus", isKeyboard)
+	clear(self.focusedWgts)
 
 	if widget then
-		self.focusedWidgets[1] = widget
-		getAncestorPanels(self, widget, false, self.focusedWidgets)
-		self:bubble(false, "focus", isKeyboard)
+		self.focusedWgts[1] = widget
+		getAncestorPanels(self, widget, false, self.focusedWgts)
+		self:bubble(self.focusedWgts, "focus", isKeyboard)
 	end
 end
 
@@ -274,7 +287,7 @@ function Ruu.mouseMoved(self, x, y, dx, dy)
 		-- Still Check collision for drag-and-drop.
 		--[[
 		local hoveredWidgets = {}
-		for widget,_ in pairs(self.enabledWidgets) do
+		for widget,_ in pairs(self.enabledWgts) do
 			if isPointOnWidget(widget, x, y) then
 				table.insert(hoveredWidgets, widget)
 			end
@@ -286,23 +299,34 @@ function Ruu.mouseMoved(self, x, y, dx, dy)
 		end
 		--]]
 	else -- Not dragging.
-		-- TODO: Some way to -not- unhover & re-hover everything on every mouse move?
-		self:bubble(true, "unhover")
-		clear(self.hoveredWidgets)
-		for widget,_ in pairs(self.enabledWidgets) do
+		local newHovered
+		for widget,_ in pairs(self.enabledWgts) do
 			if isPointOnWidget(widget, x, y) then
-				table.insert(self.hoveredWidgets, widget)
+				newHovered = newHovered or {}
+				table.insert(newHovered, widget)
 			end
 		end
-		if self.hoveredWidgets[1] then
-			util.sortByDepth(self.hoveredWidgets, self.layerDepths)
-			self:bubble(true, "hover")
+
+		if self.hoveredWgts[1] then
+			if newHovered then
+				local wgtsToUnhover = getSubtraction(self.hoveredWgts, newHovered)
+				self:bubble(wgtsToUnhover, "unhover")
+			else
+				self:bubble(self.hoveredWgts, "unhover")
+				clear(self.hoveredWgts)
+			end
+		end
+		if newHovered then
+			self.hoveredWgts = newHovered
+			util.sortByDepth(self.hoveredWgts, self.layerDepths)
+			-- Will get repeat "hover" events, but NOT repeat "unhover" events.
+			self:bubble(self.hoveredWgts, "hover")
 		end
 	end
 end
 
-function Ruu.bubble(self, isHoverAction, fnName, ...)
-	local wgtList = isHoverAction and self.hoveredWidgets or self.focusedWidgets
+function Ruu.bubble(self, wgtList, fnName, ...)
+	-- local wgtList = isHoverAction and self.hoveredWgts or self.focusedWgts
 	for depth,wgt in ipairs(wgtList) do
 		if wgt[fnName] then
 			local r = wgt[fnName](wgt, depth, ...)
@@ -316,25 +340,25 @@ function Ruu.input(self, action, value, change, rawChange, isRepeat, x, y, dx, d
 		self:mouseMoved(x, y, dx, dy)
 	elseif action == self.CLICK then
 		if change == 1 then
-			self:setFocus(self.hoveredWidgets[1], IS_NOT_KEYBOARD)
-			local r = self:bubble(true, "press", self.mx, self.my, IS_NOT_KEYBOARD)
+			self:setFocus(self.hoveredWgts[1], IS_NOT_KEYBOARD)
+			local r = self:bubble(self.hoveredWgts, "press", self.mx, self.my, IS_NOT_KEYBOARD)
 			if r then  return r  end
 		elseif change == -1 then
-			local r = self:bubble(true, "release", false, self.mx, self.my, IS_NOT_KEYBOARD)
+			local r = self:bubble(self.hoveredWgts, "release", false, self.mx, self.my, IS_NOT_KEYBOARD)
 			if r then  return r  end
 		end
 	elseif action == self.ENTER then
 		if change == 1 then
-			local r = self:bubble(false, "press", nil, nil, IS_KEYBOARD)
+			local r = self:bubble(self.focusedWgts, "press", nil, nil, IS_KEYBOARD)
 			if r then  return r  end
 		elseif change == -1 then
-			local r = self:bubble(false, "release", false, nil, nil, IS_KEYBOARD)
+			local r = self:bubble(self.focusedWgts, "release", false, nil, nil, IS_KEYBOARD)
 			if r then  return r  end
 		end
 	elseif self.NAV_DIRS[action] and (change == 1 or isRepeat) then
-		if self.focusedWidgets[1] then
+		if self.focusedWgts[1] then
 			local dirStr = self.NAV_DIRS[action]
-			local neighbor = self:bubble(false, "getFocusNeighbor", dirStr)
+			local neighbor = self:bubble(self.focusedWgts, "getFocusNeighbor", dirStr)
 			if neighbor == true then -- No neighbor, but used input.
 				return true
 			elseif neighbor then
@@ -343,31 +367,32 @@ function Ruu.input(self, action, value, change, rawChange, isRepeat, x, y, dx, d
 			end
 		end
 	elseif action == self.TEXT then
-		local r = self:bubble(false, "textInput", value)
+		local r = self:bubble(self.focusedWgts, "textInput", value)
 		if r then  return r  end
 	elseif action == self.SCROLL then
-		local r = self:bubble(true, "scroll", dx, dy)
+		local r = self:bubble(self.hoveredWgts, "scroll", dx, dy)
 		if r then  return r  end
 	elseif action == self.BACKSPACE and (change == 1 or isRepeat) then
-		local r = self:bubble(false, "backspace")
+		local r = self:bubble(self.focusedWgts, "backspace")
 		if r then  return r  end
 	elseif action == self.DELETE and (change == 1 or isRepeat) then
-		local r = self:bubble(false, "delete")
+		local r = self:bubble(self.focusedWgts, "delete")
 		if r then  return r  end
 	elseif action == self.HOME and change == 1 then
-		local r = self:bubble(false, "home")
+		local r = self:bubble(self.focusedWgts, "home")
 		if r then  return r  end
 	elseif action == self.END and change == 1 then
-		local r = self:bubble(false, "end")
+		local r = self:bubble(self.focusedWgts, "end")
 		if r then  return r  end
 	elseif action == self.CANCEL and change == 1 then
-		local r = self:bubble(false, "cancel")
+		local r = self:bubble(self.focusedWgts, "cancel")
 		if r then  return r  end
 	end
 
 	-- Pass on any unused input to hovered or focused widgets for custom uses.
 	local isHoverAction = self.isHoverAction[action]
-	local r = self:bubble(isHoverAction, "ruuInput", action, value, change, rawChange, isRepeat, x, y, dx, dy, isTouch, presses)
+	local wgtList = isHoverAction and self.hoveredWgts or self.focusedWgts
+	local r = self:bubble(wgtList, "ruuInput", action, value, change, rawChange, isRepeat, x, y, dx, dy, isTouch, presses)
 	if r then  return r  end
 end
 
@@ -386,10 +411,10 @@ function Ruu.registerLayers(self, layerList)
 end
 
 function Ruu.set(self, theme)
-	self.allWidgets = {}
-	self.enabledWidgets = {}
-	self.hoveredWidgets = {}
-	self.focusedWidgets = {}
+	self.allWgts = {}
+	self.enabledWgts = {}
+	self.hoveredWgts = {}
+	self.focusedWgts = {}
 	self.theme = theme or defaultTheme
 	self.mx, self.my = 0, 0
 	self.layerDepths = {}
