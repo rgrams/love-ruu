@@ -310,6 +310,7 @@ function Ruu.mouseMoved(self, x, y, dx, dy)
 		if self.hoveredWgts[1] then
 			if newHovered then
 				local wgtsToUnhover = getSubtraction(self.hoveredWgts, newHovered)
+				util.sortByDepth(wgtsToUnhover, self.layerDepths)
 				self:bubble(wgtsToUnhover, "unhover")
 			else
 				self:bubble(self.hoveredWgts, "unhover")
