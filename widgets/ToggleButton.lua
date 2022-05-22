@@ -21,7 +21,7 @@ end
 
 function ToggleButton.setChecked(self, isChecked)
 	self.isChecked = isChecked
-	self.wgtTheme.setChecked(isChecked)
+	self.wgtTheme.setChecked(self, isChecked)
 end
 
 return ToggleButton
