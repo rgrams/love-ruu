@@ -49,7 +49,7 @@ end
 function Button.focus(self, depth, isKeyboard)
 	if depth ~= 1 then  return  end
 	self.isFocused = true
-	self.wgtTheme.focus(self, depth, isKeyboard)
+	self.wgtTheme.focus(self, isKeyboard)
 end
 
 function Button.unfocus(self, depth, isKeyboard)

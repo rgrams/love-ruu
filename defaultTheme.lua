@@ -226,8 +226,8 @@ end
 local Slider = Button:extend()
 M.Slider = Slider
 
-function Slider.init(self, nodeName)
-	Slider.super.init(self, nodeName)
+function Slider.init(self, themeData)
+	Slider.super.init(self, themeData)
 	self.wgtTheme.drag(self)
 end
 
