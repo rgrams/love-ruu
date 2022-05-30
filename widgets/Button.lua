@@ -34,13 +34,16 @@ function Button.hitCheck(self, x, y)
 end
 
 function Button.hover(self, depth)
-	if depth ~= 1 then  return  end
+	if depth > 1 then
+		if self.isHovered then  self:unhover(depth)  end
+		return
+	end
 	self.isHovered = true
 	self.wgtTheme.hover(self)
 end
 
 function Button.unhover(self, depth)
-	if depth ~= 1 then  return  end
+	if not self.isHovered and depth > 1 then  return  end
 	self.isHovered = false
 	self.wgtTheme.unhover(self)
 	if self.isPressed then  self:release(depth, true)  end -- Release without firing.
