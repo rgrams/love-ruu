@@ -21,13 +21,13 @@ function Slider.set(self, ruu, themeData, releaseFn, fraction, length, wgtTheme)
 end
 
 function Slider.press(self, depth, mx, my, isKeyboard)
-	if depth ~= 1 then  return  end
+	if depth > 1 then  return  end
 	Slider.super.press(self, depth, mx, my, isKeyboard)
 	self.ruu:startDrag(self)
 end
 
 function Slider.release(self, depth, dontFire, mx, my, isKeyboard)
-	if depth ~= 1 then  return  end
+	if depth > 1 then  return  end
 	Slider.super.release(self, depth, dontFire, mx, my, isKeyboard)
 	self.ruu:stopDraggingWidget(self)
 end
@@ -74,7 +74,7 @@ local dirs = { up = {0, 1}, down = {0, -1}, left = {-1, 0}, right = {1, 0} }
 local COS_45 = math.cos(math.rad(45))
 
 function Slider.getFocusNeighbor(self, depth, dir)
-	if depth ~= 1 then  return  end
+	if depth > 1 then  return  end
 	local dirVec = dirs[dir]
 	if dirVec then
 		local dx, dy = dirVec[1], dirVec[2]

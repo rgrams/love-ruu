@@ -50,27 +50,27 @@ function Button.unhover(self, depth)
 end
 
 function Button.focus(self, depth, isKeyboard)
-	if depth ~= 1 then  return  end
+	if depth > 1 then  return  end
 	self.isFocused = true
 	self.wgtTheme.focus(self, isKeyboard)
 end
 
 function Button.unfocus(self, depth, isKeyboard)
-	if depth ~= 1 then  return  end
+	if depth > 1 then  return  end
 	self.isFocused = false
 	self.wgtTheme.unfocus(self, isKeyboard)
 	if self.isPressed then  self:release(depth, true)  end -- Release without firing.
 end
 
 function Button.press(self, depth, mx, my, isKeyboard)
-	if depth ~= 1 then  return  end
+	if depth > 1 then  return  end
 	self.isPressed = true
 	self.wgtTheme.press(self, mx, my, isKeyboard)
 	if self.pressFn then  self:pressFn(mx, my, isKeyboard)  end
 end
 
 function Button.release(self, depth, dontFire, mx, my, isKeyboard)
-	if depth ~= 1 then  return  end
+	if depth > 1 then  return  end
 	if not self.isPressed then  dontFire = true  end
 	self.isPressed = false
 	self.wgtTheme.release(self, dontFire, mx, my, isKeyboard)
@@ -84,7 +84,7 @@ function Button.release(self, depth, dontFire, mx, my, isKeyboard)
 end
 
 function Button.getFocusNeighbor(self, depth, dir)
-	if depth ~= 1 then  return  end
+	if depth > 1 then  return  end
 	return self.neighbor[dir]
 end
 

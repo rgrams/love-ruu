@@ -41,7 +41,7 @@ local function unCheckSiblings(self)
 end
 
 function RadioButton.release(self, depth, dontFire, mx, my, isKeyboard)
-	if depth ~= 1 then  return  end
+	if depth > 1 then  return  end
 	if not self.isPressed then  dontFire = true  end
 	self.isPressed = false
 	if not dontFire then
