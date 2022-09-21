@@ -8,7 +8,7 @@ Slider.className = "Slider"
 Slider.nudgeDist = 5
 
 local function toLocal(self, dx, dy)
-	local wm = self.themeData._to_world
+	local wm = self.themeData._toWorld
 	return self.themeData:toLocal(wm.x + dx, wm.y + dy)
 end
 

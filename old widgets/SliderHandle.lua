@@ -12,7 +12,7 @@ function SliderHandle.updatePos(self, dx, dy, isLocal)
 		-- Convert dx and dx to local deltas relative to the bar.
 		if not isLocal then
 			local bar = self.bar
-			local wx, wy = bar._to_world.x + dx, bar._to_world.y + dy
+			local wx, wy = bar._toWorld.x + dx, bar._toWorld.y + dy
 			dx, dy = bar:toLocal(wx, wy)
 		end
 		-- Clamp to start and end points.
@@ -38,7 +38,7 @@ local COS45 = math.cos(math.rad(45))
 function SliderHandle.getFocusNeighbor(self, dir)
 	local dirVec = dirs[dir]
 	local bar = self.bar
-	local x, y = bar._to_world.x + dirVec[1], bar._to_world.y + dirVec[2]
+	local x, y = bar._toWorld.x + dirVec[1], bar._toWorld.y + dirVec[2]
 	x, y = bar:toLocal(x, y)
 	if math.abs(x) > COS45 then -- Input direction is roughly aligned with slider rotation.
 		self:drag(x * self.nudgeDist, 0, nil, true)

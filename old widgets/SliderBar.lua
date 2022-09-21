@@ -23,7 +23,7 @@ local COS45 = math.cos(math.rad(45))
 
 function SliderBar.getFocusNeighbor(self, dir)
 	local dirVec = dirs[dir]
-	local x, y = self._to_world.x + dirVec[1], self._to_world.y + dirVec[2]
+	local x, y = self._toWorld.x + dirVec[1], self._toWorld.y + dirVec[2]
 	x, y = self:toLocal(x, y)
 	if math.abs(x) > COS45 then -- Input direction is roughly aligned with slider rotation.
 		self.handle:drag(x * self.handle.nudgeDist, 0, nil, true)
