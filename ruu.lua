@@ -370,7 +370,7 @@ function Ruu.input(self, action, value, change, rawChange, isRepeat, x, y, dx, d
 	elseif action == self.TEXT then
 		local r = self:bubble(self.focusedWgts, "textInput", value)
 		if r then  return r  end
-	elseif action == self.SCROLL then
+	elseif action == self.SCROLL and change == 1 then
 		local r = self:bubble(self.hoveredWgts, "scroll", dx, dy)
 		if r then  return r  end
 	elseif action == self.BACKSPACE and (change == 1 or isRepeat) then
