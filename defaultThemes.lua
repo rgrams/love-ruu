@@ -9,14 +9,6 @@ M.essentials = essentials
 
 local PanelWgt = require(_basePath .. "widgets.Panel")
 
--- Wrapper for all calls from Widget --> Theme.
--- Will be set on Ruu instance as `ruu.callTheme`.
--- So you can customize how the theme gets events, what arguments are used, etc.
-function essentials.call(ruu, wgt, theme, fnName, ...)
-	local fn = theme[fnName]
-	return fn(wgt, ...)
-end
-
 function essentials.hitsPoint(widget, x, y)
 	if widget.object:hitCheck(x, y) then
 		local mask = widget.object.maskNode

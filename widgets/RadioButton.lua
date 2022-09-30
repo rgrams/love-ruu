@@ -29,7 +29,7 @@ end
 
 function RadioButton.siblingWasChecked(self)
 	self.isChecked = false
-	self.ruu:callTheme(self, self.theme, "setChecked", false)
+	self.theme.setChecked(self, false)
 end
 
 local function unCheckSiblings(self)
@@ -58,7 +58,7 @@ function RadioButton.release(self, depth, dontFire, mx, my, isKeyboard)
 			end
 		end
 	end
-	self.ruu:callTheme(self, self.theme, "release", dontFire, mx, my, isKeyboard)
+	self.theme.release(self, dontFire, mx, my, isKeyboard)
 end
 
 -- For outside scripts to manually check or uncheck buttons.
@@ -66,10 +66,10 @@ function RadioButton.setChecked(self, isChecked)
 	if isChecked and not self.isChecked then -- Check.
 		self.isChecked = true
 		unCheckSiblings(self)
-		self.ruu:callTheme(self, self.theme, "setChecked", true)
+		self.theme.setChecked(self, true)
 	elseif self.isChecked and not isChecked then -- Un-check
 		self.isChecked = false
-		self.ruu:callTheme(self, self.theme, "setChecked", false)
+		self.theme.setChecked(self, false)
 		-- NOTE: It's weird to un-check a radio button.
 		--       The user is responsible for checking another button if they un-check the checked one.
 	end

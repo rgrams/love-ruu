@@ -67,7 +67,7 @@ function Slider.drag(self, dx, dy, dragType, isLocal)
 			self.dragFn(self)
 		end
 	end
-	self.ruu:callTheme(self, self.theme, "drag", dx, dy)
+	self.theme.drag(self, dx, dy)
 end
 
 local dirs = { up = {0, 1}, down = {0, -1}, left = {-1, 0}, right = {1, 0} }

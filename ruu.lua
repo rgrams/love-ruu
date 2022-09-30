@@ -388,7 +388,6 @@ function Ruu.set(self, themes, themeEssentials)
 	self.focusedWgts = {}
 	self.themes = themes or defaultThemes
 	self.themeEssentials = themeEssentials or self.themes.essentials
-	self.callTheme = self.themeEssentials.call
 	self.mx, self.my = 0, 0
 	self.layerDepths = {}
 	self.drags = {}

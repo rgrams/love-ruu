@@ -32,7 +32,7 @@ function InputField.confirmText(self)
 	if isRejected then
 		local rejectedText = self.text
 		self:cancel(1)
-		self.ruu:callTheme(self, self.theme, "textRejected", rejectedText)
+		self.theme.textRejected(self, rejectedText)
 	else
 		self.oldText = self.text -- Save text for next time.
 	end
@@ -51,7 +51,7 @@ function InputField.release(self, depth, dontFire, mx, my, isKeyboard)
 	if not dontFire then
 		self:selectAll()
 	end
-	self.ruu:callTheme(self, self.theme, "release", dontFire, mx, my, isKeyboard)
+	self.theme.release(self, dontFire, mx, my, isKeyboard)
 end
 
 function InputField.focus(self, depth, isKeyboard)
@@ -61,7 +61,7 @@ function InputField.focus(self, depth, isKeyboard)
 		self.oldText = self.text -- Save in case of cancel.
 		self:selectAll()
 	end
-	self.ruu:callTheme(self, self.theme, "focus")
+	self.theme.focus(self)
 end
 
 function InputField.unfocus(self, depth, isKeyboard)
@@ -71,14 +71,14 @@ function InputField.unfocus(self, depth, isKeyboard)
 	if isKeyboard and self.isEnabled and self.confirmFn then
 		self:confirmText()
 	end
-	self.ruu:callTheme(self, self.theme, "unfocus", isKeyboard)
+	self.theme.unfocus(self, isKeyboard)
 end
 
 --------------------  Internal Text Setting  --------------------
 function InputField.updateText(self, text)
 	self.text = text
 	fireCallback(self, self.editFn) -- EditFn can modify self.text.
-	self.ruu:callTheme(self, self.theme, "updateText")
+	self.theme.updateText(self)
 end
 
 function InputField.insertText(self, text)
@@ -105,7 +105,7 @@ end
 function InputField.clearSelection(self)
 	self.hasSelection = false
 	self.selectionTailIdx = nil
-	self.ruu:callTheme(self, self.theme, "updateSelection")
+	self.theme.updateSelection(self)
 end
 
 -- Set the "tail" character index of the selection.
@@ -113,13 +113,13 @@ end
 function InputField.startSelection(self, charIdx)
 	self.hasSelection = true
 	self.selectionTailIdx = charIdx
-	self.ruu:callTheme(self, self.theme, "updateSelection")
+	self.theme.updateSelection(self)
 end
 
 function InputField.selectAll(self)
 	self:startSelection(0)
 	self.cursorIdx = #self.text
-	self.ruu:callTheme(self, self.theme, "updateCursorPos")
+	self.theme.updateCursorPos(self)
 end
 
 function InputField.getSelectionLeftIdx(self)
@@ -139,7 +139,7 @@ function InputField.setCursorIdx(self, index)
 		self:startSelection(self.cursorIdx)
 	end
 	self.cursorIdx = math.max(0, math.min(#self.text, index))
-	self.ruu:callTheme(self, self.theme, "updateCursorPos")
+	self.theme.updateCursorPos(self)
 end
 
 function InputField.moveCursor(self, dx)
@@ -156,7 +156,7 @@ function InputField.moveCursor(self, dx)
 			self.cursorIdx = selectionLeftIdx
 		end
 		self:clearSelection()
-		self.ruu:callTheme(self, self.theme, "updateCursorPos")
+		self.theme.updateCursorPos(self)
 		return -- Skip normal cursor movement.
 	elseif not self.hasSelection and isSelecting then
 		self:startSelection(self.cursorIdx)
@@ -167,7 +167,7 @@ function InputField.moveCursor(self, dx)
 	elseif dx < 0 then
 		self.cursorIdx = math.max(0, self.cursorIdx + dx)
 	end
-	self.ruu:callTheme(self, self.theme, "updateCursorPos")
+	self.theme.updateCursorPos(self)
 end
 
 --------------------  Ruu Input Methods  --------------------
@@ -200,7 +200,7 @@ function InputField.cancel(self, depth)
 	if depth > 1 then  return  end
 	self.text = self.oldText
 	self:selectAll()
-	self.ruu:callTheme(self, self.theme, "updateText")
+	self.theme.updateText(self)
 	return true
 end
 
