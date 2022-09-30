@@ -21,7 +21,7 @@ end
 
 function ToggleButton.setChecked(self, isChecked)
 	self.isChecked = isChecked
-	self.theme.setChecked(self, isChecked)
+	self.ruu:callTheme(self, self.theme, "setChecked", isChecked)
 end
 
 return ToggleButton

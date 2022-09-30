@@ -14,12 +14,12 @@ end
 function Panel.focus(self, depth, isKeyboard)
 	self.panelIndex = depth
 	self.isFocused = true
-	self.theme.focus(self, isKeyboard)
+	self.ruu:callTheme(self, self.theme, "focus", isKeyboard)
 end
 
 function Panel.unfocus(self, depth, isKeyboard)
 	self.isFocused = false
-	self.theme.unfocus(self, isKeyboard)
+	self.ruu:callTheme(self, self.theme, "unfocus", isKeyboard)
 	if self.isPressed then  self:release(depth, true)  end
 end
 

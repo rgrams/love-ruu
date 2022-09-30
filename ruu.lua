@@ -42,6 +42,13 @@ local function addWidget(self, widget)
 	self.enabledWgts[widget] = true
 end
 
+-- Wrapper for all calls from Widget --> Theme.
+-- So you can customize how the theme gets events, what arguments are used, etc.
+function Ruu.callTheme(self, wgt, theme, fnName, ...)
+	local fn = theme[fnName]
+	fn(wgt, ...)
+end
+
 function Ruu.Button(self, themeData, releaseFn, theme)
 	local btn = Button(self, themeData, releaseFn, theme or self.themes.Button)
 	addWidget(self, btn)
