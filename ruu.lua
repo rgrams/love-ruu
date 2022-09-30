@@ -2,7 +2,7 @@
 local _basePath = (...):gsub("ruu$", "")
 
 local Class = require(_basePath .. "base-class")
-local defaultTheme = require(_basePath .. "defaultTheme")
+local defaultThemes = require(_basePath .. "defaultThemes")
 local util = require(_basePath .. "ruutilities")
 
 local Ruu = Class:extend()
@@ -42,20 +42,20 @@ local function addWidget(self, widget)
 	self.enabledWgts[widget] = true
 end
 
-function Ruu.Button(self, themeData, releaseFn, wgtTheme)
-	local btn = Button(self, themeData, releaseFn, wgtTheme or self.theme.Button)
+function Ruu.Button(self, themeData, releaseFn, theme)
+	local btn = Button(self, themeData, releaseFn, theme or self.themes.Button)
 	addWidget(self, btn)
 	return btn
 end
 
-function Ruu.ToggleButton(self, themeData, releaseFn, isChecked, wgtTheme)
-	local btn = ToggleButton(self, themeData, releaseFn, isChecked, wgtTheme or self.theme.ToggleButton)
+function Ruu.ToggleButton(self, themeData, releaseFn, isChecked, theme)
+	local btn = ToggleButton(self, themeData, releaseFn, isChecked, theme or self.themes.ToggleButton)
 	addWidget(self, btn)
 	return btn
 end
 
-function Ruu.RadioButton(self, themeData, releaseFn, isChecked, wgtTheme)
-	local btn = RadioButton(self, themeData, releaseFn, isChecked, wgtTheme or self.theme.RadioButton)
+function Ruu.RadioButton(self, themeData, releaseFn, isChecked, theme)
+	local btn = RadioButton(self, themeData, releaseFn, isChecked, theme or self.themes.RadioButton)
 	addWidget(self, btn)
 	return btn
 end
@@ -64,20 +64,20 @@ function Ruu.groupRadioButtons(self, widgets)
 	RadioButton.setGroup(widgets)
 end
 
-function Ruu.Slider(self, themeData, releaseFn, fraction, length, wgtTheme)
-	local btn = Slider(self, themeData, releaseFn, fraction, length, wgtTheme or self.theme.Slider)
+function Ruu.Slider(self, themeData, releaseFn, fraction, length, theme)
+	local btn = Slider(self, themeData, releaseFn, fraction, length, theme or self.themes.Slider)
 	addWidget(self, btn)
 	return btn
 end
 
-function Ruu.InputField(self, themeData, confirmFn, text, wgtTheme)
-	local btn = InputField(self, themeData, confirmFn, text, wgtTheme or self.theme.InputField)
+function Ruu.InputField(self, themeData, confirmFn, text, theme)
+	local btn = InputField(self, themeData, confirmFn, text, theme or self.themes.InputField)
 	addWidget(self, btn)
 	return btn
 end
 
-function Ruu.Panel(self, themeData, wgtTheme)
-	local wgt = Panel(self, themeData, wgtTheme or self.theme.Panel)
+function Ruu.Panel(self, themeData, theme)
+	local wgt = Panel(self, themeData, theme or self.themes.Panel)
 	addWidget(self, wgt)
 	return wgt
 end
@@ -411,12 +411,12 @@ function Ruu.registerLayers(self, layerList)
 	end
 end
 
-function Ruu.set(self, theme)
+function Ruu.set(self, themes)
 	self.allWgts = {}
 	self.enabledWgts = {}
 	self.hoveredWgts = {}
 	self.focusedWgts = {}
-	self.theme = theme or defaultTheme
+	self.themes = themes or defaultThemes
 	self.mx, self.my = 0, 0
 	self.layerDepths = {}
 	self.drags = {}

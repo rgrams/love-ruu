@@ -5,9 +5,9 @@ local Button = require(_basePath .. "widgets.Button")
 local ToggleButton = Button:extend()
 ToggleButton.className = "ToggleBtn"
 
-function ToggleButton.set(self, ruu, themeData, releaseFn, isChecked, wgtTheme)
+function ToggleButton.set(self, ruu, themeData, releaseFn, isChecked, theme)
 	self.isChecked = isChecked -- Needs to be set before theme.init.
-	ToggleButton.super.set(self, ruu, themeData, releaseFn, wgtTheme)
+	ToggleButton.super.set(self, ruu, themeData, releaseFn, theme)
 end
 
 function ToggleButton.release(self, depth, dontFire, mx, my, isKeyboard)
@@ -21,7 +21,7 @@ end
 
 function ToggleButton.setChecked(self, isChecked)
 	self.isChecked = isChecked
-	self.wgtTheme.setChecked(self, isChecked)
+	self.theme.setChecked(self, isChecked)
 end
 
 return ToggleButton

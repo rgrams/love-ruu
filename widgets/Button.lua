@@ -13,15 +13,15 @@ function Button.__tostring(self)
 	return "(Ruu "..self.className.." "..self.id..")"
 end
 
-function Button.set(self, ruu, themeData, releaseFn, wgtTheme)
+function Button.set(self, ruu, themeData, releaseFn, theme)
 	self.ruu = ruu -- Only used for InputFields.
 	self.releaseFn = releaseFn
 	self.isEnabled = true
 	self.neighbor = {}
 	self.themeData = themeData
 	themeData.widget = self
-	self.wgtTheme = wgtTheme
-	self.wgtTheme.init(self, self.themeData)
+	self.theme = theme
+	self.theme.init(self, self.themeData)
 end
 
 function Button.args(self, arg1, ...)
@@ -39,33 +39,33 @@ function Button.hover(self, depth)
 		return
 	end
 	self.isHovered = true
-	self.wgtTheme.hover(self)
+	self.theme.hover(self)
 end
 
 function Button.unhover(self, depth)
 	if not self.isHovered and depth > 1 then  return  end
 	self.isHovered = false
-	self.wgtTheme.unhover(self)
+	self.theme.unhover(self)
 	if self.isPressed then  self:release(depth, true)  end -- Release without firing.
 end
 
 function Button.focus(self, depth, isKeyboard)
 	if depth > 1 then  return  end
 	self.isFocused = true
-	self.wgtTheme.focus(self, isKeyboard)
+	self.theme.focus(self, isKeyboard)
 end
 
 function Button.unfocus(self, depth, isKeyboard)
 	if depth > 1 then  return  end
 	self.isFocused = false
-	self.wgtTheme.unfocus(self, isKeyboard)
+	self.theme.unfocus(self, isKeyboard)
 	if self.isPressed then  self:release(depth, true)  end -- Release without firing.
 end
 
 function Button.press(self, depth, mx, my, isKeyboard)
 	if depth > 1 then  return  end
 	self.isPressed = true
-	self.wgtTheme.press(self, mx, my, isKeyboard)
+	self.theme.press(self, mx, my, isKeyboard)
 	if self.pressFn then  self:pressFn(mx, my, isKeyboard)  end
 end
 
@@ -73,7 +73,7 @@ function Button.release(self, depth, dontFire, mx, my, isKeyboard)
 	if depth > 1 then  return  end
 	if not self.isPressed then  dontFire = true  end
 	self.isPressed = false
-	self.wgtTheme.release(self, dontFire, mx, my, isKeyboard)
+	self.theme.release(self, dontFire, mx, my, isKeyboard)
 	if self.releaseFn and not dontFire then
 		if self.releaseArgs then
 			self.releaseFn(unpack(self.releaseArgs))

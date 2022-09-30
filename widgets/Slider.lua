@@ -12,11 +12,11 @@ local function toLocal(self, dx, dy)
 	return self.themeData:toLocal(wm.x + dx, wm.y + dy)
 end
 
-function Slider.set(self, ruu, themeData, releaseFn, fraction, length, wgtTheme)
+function Slider.set(self, ruu, themeData, releaseFn, fraction, length, theme)
 	self.fraction = fraction or 0
 	self.length = length or 100
 	self.xPos = 0
-	Slider.super.set(self, ruu, themeData, releaseFn, wgtTheme)
+	Slider.super.set(self, ruu, themeData, releaseFn, theme)
 	self:updatePos() -- To update slider pos based on current fraction.
 end
 
@@ -67,7 +67,7 @@ function Slider.drag(self, dx, dy, dragType, isLocal)
 			self.dragFn(self)
 		end
 	end
-	self.wgtTheme.drag(self, dx, dy)
+	self.theme.drag(self, dx, dy)
 end
 
 local dirs = { up = {0, 1}, down = {0, -1}, left = {-1, 0}, right = {1, 0} }
