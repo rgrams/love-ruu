@@ -50,21 +50,21 @@ function Ruu.callTheme(self, wgt, theme, fnName, ...)
 end
 
 function Ruu.Button(self, themeData, releaseFn, theme)
-	local btn = Button(self, themeData, releaseFn, theme or self.themes.Button)
-	addWidget(self, btn)
-	return btn
+	local wgt = Button(self, themeData, releaseFn, theme or self.themes.Button)
+	addWidget(self, wgt)
+	return wgt
 end
 
 function Ruu.ToggleButton(self, themeData, releaseFn, isChecked, theme)
-	local btn = ToggleButton(self, themeData, releaseFn, isChecked, theme or self.themes.ToggleButton)
-	addWidget(self, btn)
-	return btn
+	local wgt = ToggleButton(self, themeData, releaseFn, isChecked, theme or self.themes.ToggleButton)
+	addWidget(self, wgt)
+	return wgt
 end
 
 function Ruu.RadioButton(self, themeData, releaseFn, isChecked, theme)
-	local btn = RadioButton(self, themeData, releaseFn, isChecked, theme or self.themes.RadioButton)
-	addWidget(self, btn)
-	return btn
+	local wgt = RadioButton(self, themeData, releaseFn, isChecked, theme or self.themes.RadioButton)
+	addWidget(self, wgt)
+	return wgt
 end
 
 function Ruu.groupRadioButtons(self, widgets)
@@ -72,15 +72,15 @@ function Ruu.groupRadioButtons(self, widgets)
 end
 
 function Ruu.Slider(self, themeData, releaseFn, fraction, length, theme)
-	local btn = Slider(self, themeData, releaseFn, fraction, length, theme or self.themes.Slider)
-	addWidget(self, btn)
-	return btn
+	local wgt = Slider(self, themeData, releaseFn, fraction, length, theme or self.themes.Slider)
+	addWidget(self, wgt)
+	return wgt
 end
 
 function Ruu.InputField(self, themeData, confirmFn, text, theme)
-	local btn = InputField(self, themeData, confirmFn, text, theme or self.themes.InputField)
-	addWidget(self, btn)
-	return btn
+	local wgt = InputField(self, themeData, confirmFn, text, theme or self.themes.InputField)
+	addWidget(self, wgt)
+	return wgt
 end
 
 function Ruu.Panel(self, themeData, theme)
