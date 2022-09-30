@@ -19,7 +19,6 @@ function Button.set(self, ruu, themeData, releaseFn, theme)
 	self.isEnabled = true
 	self.neighbor = {}
 	self.themeData = themeData
-	themeData.widget = self -- Used by getAncestorPanels - FIXME
 	self.theme = theme
 	self.ruu:callTheme(self, theme, "init", themeData)
 end
@@ -27,10 +26,6 @@ end
 function Button.args(self, arg1, ...)
 	self.releaseArgs = arg1 ~= nil and {arg1,...} or nil -- `arg1` can be `false`.
 	return self -- Allow chaining.
-end
-
-function Button.hitCheck(self, x, y)
-	return self.themeData:hitCheck(x, y)
 end
 
 function Button.hover(self, depth)

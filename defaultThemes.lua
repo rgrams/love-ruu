@@ -4,6 +4,46 @@ local Class = require(_basePath .. "base-class")
 
 local M = {}
 
+local essentials = {}
+M.essentials = essentials
+
+local PanelWgt = require(_basePath .. "widgets.Panel")
+
+-- Wrapper for all calls from Widget --> Theme.
+-- Will be set on Ruu instance as `ruu.callTheme`.
+-- So you can customize how the theme gets events, what arguments are used, etc.
+function essentials.call(ruu, wgt, theme, fnName, ...)
+	local fn = theme[fnName]
+	return fn(wgt, ...)
+end
+
+function essentials.hitsPoint(widget, x, y)
+	if widget.object:hitCheck(x, y) then
+		local mask = widget.object.maskNode
+		if mask then
+			return mask:hitCheck(x, y)
+		else
+			return true
+		end
+	end
+end
+
+function essentials.getAncestorPanels(wgt, outputList)
+	local ruu = wgt.ruu
+	local parentObj = wgt.themeData.parent -- Don't include self: we just want ancestors.
+	local treeRoot = parentObj.tree
+	while parentObj ~= treeRoot do
+		if not parentObj then  break  end
+		wgt = parentObj.widget
+		if wgt and ruu:hasWidget(wgt) and wgt:is(PanelWgt) then -- Widget can belong to a different Ruu instance.
+			outputList = outputList or {}
+			table.insert(outputList, wgt)
+		end
+		parentObj = parentObj.parent
+	end
+	return outputList
+end
+
 --##############################  BUTTON  ##############################
 local Button = Class:extend()
 M.Button = Button
@@ -15,6 +55,7 @@ end
 
 function Button.init(self, themeData)
 	self.object = themeData
+	themeData.widget = self
 	setValue(self, 0.55)
 end
 
@@ -70,6 +111,7 @@ M.InputField = InputField
 
 function InputField.init(self, themeData)
 	self.object = themeData
+	themeData.widget = self
 	self.textObj = self.object.text
 	self.cursorObj = self.object.cursor
 	self.selectionObj = self.object.selection
@@ -274,6 +316,7 @@ M.Panel = Panel
 
 function Panel.init(self, themeData)
 	self.object = themeData
+	themeData.widget = self
 end
 function Panel.hover(self)  end
 function Panel.unhover(self)  end

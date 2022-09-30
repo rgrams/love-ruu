@@ -42,11 +42,8 @@ local function addWidget(self, widget)
 	self.enabledWgts[widget] = true
 end
 
--- Wrapper for all calls from Widget --> Theme.
--- So you can customize how the theme gets events, what arguments are used, etc.
-function Ruu.callTheme(self, wgt, theme, fnName, ...)
-	local fn = theme[fnName]
-	fn(wgt, ...)
+function Ruu.hasWidget(self, widget)
+	return self.allWgts[widget]
 end
 
 function Ruu.Button(self, themeData, releaseFn, theme)
@@ -148,23 +145,6 @@ function Ruu.destroy(self, widget)
 	if widget.final then  widget:final()  end
 end
 
--- TODO: This whole function should be part of the theme?
-local function getAncestorPanels(self, wgt, outputList)
-	if not wgt then  return  end
-	local parentObj = wgt.themeData.parent -- Don't include starting object: keep current focus and ancestors separate.
-	local treeRoot = parentObj.tree
-	while parentObj ~= treeRoot do
-		if not parentObj then  break  end
-		wgt = parentObj.widget
-		if wgt and self.allWgts[wgt] and wgt:is(Panel) then -- Widget can belong to a different Ruu instance.
-			outputList = outputList or {}
-			table.insert(outputList, wgt)
-		end
-		parentObj = parentObj.parent
-	end
-	return outputList
-end
-
 function Ruu.setFocus(self, widget, isKeyboard)
 	-- We don't know what changed, so just unfocus all the old ones.
 	self:bubble(self.focusedWgts, "unfocus", isKeyboard)
@@ -172,7 +152,7 @@ function Ruu.setFocus(self, widget, isKeyboard)
 
 	if widget then
 		self.focusedWgts[1] = widget
-		getAncestorPanels(self, widget, self.focusedWgts)
+		self.themeEssentials.getAncestorPanels(widget, self.focusedWgts)
 		self:bubble(self.focusedWgts, "focus", isKeyboard)
 	end
 end
@@ -264,16 +244,6 @@ function Ruu.stopDraggingWidget(self, widget)
 	end
 end
 
-local function isPointOnWidget(widget, x, y)
-	if widget:hitCheck(x, y) then
-		if widget.maskNode then
-			return widget.maskNode:hitCheck(x, y)
-		else
-			return true
-		end
-	end
-end
-
 function Ruu.mouseMoved(self, x, y, dx, dy)
 	self.mx, self.my = x, y
 	local isDragging = self.drags[1]
@@ -288,7 +258,7 @@ function Ruu.mouseMoved(self, x, y, dx, dy)
 		--[[
 		local hoveredWidgets = {}
 		for widget,_ in pairs(self.enabledWgts) do
-			if isPointOnWidget(widget, x, y) then
+			if self.themeEssentials.hitsPoint(widget, x, y) then
 				table.insert(hoveredWidgets, widget)
 			end
 		end
@@ -301,7 +271,7 @@ function Ruu.mouseMoved(self, x, y, dx, dy)
 	else -- Not dragging.
 		local newHovered
 		for widget,_ in pairs(self.enabledWgts) do
-			if isPointOnWidget(widget, x, y) then
+			if self.themeEssentials.hitsPoint(widget, x, y) then
 				newHovered = newHovered or {}
 				table.insert(newHovered, widget)
 			end
@@ -411,12 +381,14 @@ function Ruu.registerLayers(self, layerList)
 	end
 end
 
-function Ruu.set(self, themes)
+function Ruu.set(self, themes, themeEssentials)
 	self.allWgts = {}
 	self.enabledWgts = {}
 	self.hoveredWgts = {}
 	self.focusedWgts = {}
 	self.themes = themes or defaultThemes
+	self.themeEssentials = themeEssentials or self.themes.essentials
+	self.callTheme = self.themeEssentials.call
 	self.mx, self.my = 0, 0
 	self.layerDepths = {}
 	self.drags = {}
