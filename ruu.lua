@@ -141,11 +141,8 @@ function Ruu.destroy(self, widget)
 	if widget.final then  widget:final()  end
 end
 
--- Takes a widget, a nonRecursive flag, and an optional existing output table to add onto.
--- Returns:
---    If `nonRecursive` is true: a single ancestor Panel, or nil.
---    Else: A list of ancestor Panels in child-parent order, or nil.
-local function getAncestorPanels(self, wgt, nonRecursive, outputList)
+-- TODO: This whole function should be part of the theme?
+local function getAncestorPanels(self, wgt, outputList)
 	if not wgt then  return  end
 	local parentObj = wgt.themeData.parent -- Don't include starting object: keep current focus and ancestors separate.
 	local treeRoot = parentObj.tree
@@ -153,12 +150,8 @@ local function getAncestorPanels(self, wgt, nonRecursive, outputList)
 		if not parentObj then  break  end
 		wgt = parentObj.widget
 		if wgt and self.allWgts[wgt] and wgt:is(Panel) then -- Widget can belong to a different Ruu instance.
-			if nonRecursive then
-				return wgt
-			else
-				outputList = outputList or {}
-				table.insert(outputList, wgt)
-			end
+			outputList = outputList or {}
+			table.insert(outputList, wgt)
 		end
 		parentObj = parentObj.parent
 	end
@@ -172,7 +165,7 @@ function Ruu.setFocus(self, widget, isKeyboard)
 
 	if widget then
 		self.focusedWgts[1] = widget
-		getAncestorPanels(self, widget, false, self.focusedWgts)
+		getAncestorPanels(self, widget, self.focusedWgts)
 		self:bubble(self.focusedWgts, "focus", isKeyboard)
 	end
 end
