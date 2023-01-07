@@ -195,7 +195,7 @@ end
 function InputField.updateMaskSize(self)
 	local maskObj = self.object.mask
 	local pivotX = maskObj.px / 2
-	local width = maskObj._contentRect.w
+	local width = maskObj.contentAlloc.w
 	local originX = 0
 	local centerX = originX - pivotX * width
 
@@ -258,7 +258,7 @@ function InputField.updateCursorPos(self)
 		local selectionX = self.cursorX
 		local selectionWidth = self.selectionTailX - self.cursorX -- Width can be negative, it works fine.
 		self.selectionObj:setPos(self.maskLeftEdgeX + selectionX)
-		self.selectionObj:size(selectionWidth)
+		self.selectionObj:setSize(selectionWidth)
 	else
 		self.selectionObj:setVisible(false)
 	end
