@@ -196,6 +196,17 @@ function Ruu.mapNeighbors(self, map)
 	end
 end
 
+-- Shortcut for mapping vertically with a simple list.
+function Ruu.mapVerticalNeighbors(self, list)
+	local lastI = #list
+	local first, last = list[1], list[lastI]
+	for i=1,lastI do
+		local wgt = list[i]
+		wgt.neighbor.up = list[i-1] or last
+		wgt.neighbor.down = list[i+1] or first
+	end
+end
+
 function Ruu.mapNextPrev(self, map)
 	if #map <= 1 then  return  end
 
