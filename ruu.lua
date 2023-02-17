@@ -382,13 +382,21 @@ function Ruu.isSelectionModifierPressed(self)
 	return Input.isPressed(self.SELECTION_MODIFIER)
 end
 
-function Ruu.registerLayers(self, layerList)
+local function registerLayer(layer, map, i)
+	if type(layer) ~= "string" then
+		error("Ruu.registerLayers() - Invalid layer '" .. tostring(layer) .. "'. Must be a string.")
+	end
+	map[layer] = i * Ruu.layerPrecision
+end
+
+function Ruu.registerLayers(self, layerList, isTopToBottom)
 	self.layerDepths = {}
-	for i,layer in ipairs(layerList) do
-		if type(layer) ~= "string" then
-			error("Ruu.registerLayers() - Invalid layer '" .. tostring(layer) .. "'. Must be a string.")
-		end
-		self.layerDepths[layer] = i * Ruu.layerPrecision
+	local first, last, incr = 1,#layerList,1
+	if isTopToBottom then  first, last, incr = last, first, -1  end
+	local height=0
+	for i=first,last,incr do
+		height = height + 1
+		registerLayer(layerList[i], self.layerDepths, height)
 	end
 end
 
