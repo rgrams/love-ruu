@@ -5,7 +5,7 @@ local Button = require(_basePath .. "Button")
 local Slider = Button:extend()
 Slider.className = "Slider"
 
-Slider.nudgeDist = 5
+Slider.nudgeFraction = 0.1
 
 local max, min = math.max, math.min
 
@@ -60,6 +60,10 @@ end
 local dirs = { up = {0, 1}, down = {0, -1}, left = {-1, 0}, right = {1, 0} }
 local COS_45 = math.cos(math.rad(45))
 
+local function sign(x)
+	return x >= 0 and 1 or -1
+end
+
 function Slider.getFocusNeighbor(self, depth, dir)
 	if depth > 1 then  return  end
 	local dirVec = dirs[dir]
@@ -67,7 +71,7 @@ function Slider.getFocusNeighbor(self, depth, dir)
 		local dx, dy = dirVec[1], dirVec[2]
 		dx, dy = self:toLocal(dx, dy, true)
 		if math.abs(dx) > COS_45 then -- Input direction is roughly aligned with slider rotation.
-			self:drag(dx * self.nudgeDist, 0, nil, true)
+			self:drag(sign(dx) * self.nudgeFraction*self.length, 0, nil, true)
 			return true -- Consume input.
 		else
 			return self.neighbor[dir]
