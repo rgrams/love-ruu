@@ -36,6 +36,22 @@ function essentials.getAncestorPanels(wgt, outputList)
 	return outputList
 end
 
+function essentials.toLocal(wgt, x, y, isDelta)
+	local obj = wgt.themeData
+	local lx, ly
+	if isDelta then
+		local world = obj._toWorld
+		lx, ly = obj:toLocal(world.x + x, world.y + y)
+	else
+		lx, ly = obj:toLocal(x, y)
+	end
+	if obj.lastAlloc then
+		local scale = obj.lastAlloc.scale
+		lx, ly = lx/scale, ly/scale
+	end
+	return lx, ly
+end
+
 --##############################  BUTTON  ##############################
 local Button = Class:extend()
 M.Button = Button
@@ -265,9 +281,9 @@ function Slider.init(self, themeData)
 	self.theme.drag(self)
 end
 
-function Slider.drag(self)
+function Slider.drag(self, dx, dy, fraction)
 	-- self.angle = self.fraction * math.pi
-	self.object.kx = self.fraction - 0.5
+	self.object.kx = fraction - 0.5
 end
 
 --[[
