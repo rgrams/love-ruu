@@ -242,4 +242,11 @@ InputField["end"] = function(self, depth)
 	return true
 end
 
+function InputField.ruuInput(wgt, depth, action, value, change, rawChange, isRepeat)
+	if depth > 1 then  return  end
+	if action == "select all" and change == 1 then
+		wgt:selectAll()
+	end
+end
+
 return InputField
