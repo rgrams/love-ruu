@@ -117,14 +117,12 @@ M.RadioButton = RadioButton
 local InputField = Button:extend()
 M.InputField = InputField
 
-function InputField.init(self, themeData)
+function InputField.setup(self, themeData)
 	self.object = themeData
 	themeData.widget = self
 	self.textObj = self.object.text
 	self.cursorObj = self.object.cursor
 	self.selectionObj = self.object.selection
-
-	setValue(self, 0.3)
 
 	if self.object.tree then
 		self.cursorObj:setVisible(self.isFocused)
@@ -136,10 +134,15 @@ function InputField.init(self, themeData)
 
 	self.font = self.textObj.font
 	self.scrollOX = 0
-	self.textOriginX = self.textObj.pos.x
+	self.textXPad = self.textObj.pos.x -- Use text offset as padding inside both ends of mask.
 
 	self.theme.updateMaskSize(self)
 	self.theme.updateText(self)
+end
+
+function InputField.init(self, themeData)
+	self:setup(themeData)
+	setValue(self, 0.3)
 end
 
 function InputField.hover(self)
@@ -203,7 +206,7 @@ end
 function InputField.updateMaskSize(self)
 	local maskObj = self.object.mask
 	local pivotX = maskObj.px / 2
-	local width = maskObj.contentAlloc.w
+	local width = maskObj.contentAlloc.w - self.textXPad*2
 	local originX = 0
 	local centerX = originX - pivotX * width
 
@@ -216,8 +219,6 @@ function InputField.updateTotalTextWidth(self)
 end
 
 function InputField.setScrollOffset(self, scrollOX)
-	-- if true then  return  end
-
 	local oldScrollOX = self.scrollOX
 	local normalViewWidth = self.maskRightEdgeX - self.maskLeftEdgeX
 	if self.totalTextWidth <= normalViewWidth then
@@ -229,7 +230,7 @@ function InputField.setScrollOffset(self, scrollOX)
 
 	if scrollOX ~= oldScrollOX then
 		self.scrollOX = scrollOX
-		self.textObj:setPos(self.textOriginX + self.scrollOX)
+		self.textObj:setPos(self.textXPad + self.scrollOX)
 
 		self.theme.updateSelectionXPos(self)
 	end
@@ -251,7 +252,7 @@ end
 -- Gets the un-scrolled X pos of the -right edge- of the character at `charIdx`.
 function InputField.getCharXOffset(self, charIdx)
 	local preText = self.text:sub(0, charIdx)
-	return self.textOriginX + self.font:getWidth(preText)
+	return self.font:getWidth(preText)
 end
 
 -- Called from widget.
@@ -263,9 +264,8 @@ function InputField.updateCursorPos(self)
 	self.cursorObj:setPos(self.cursorX - self.maskWidth/2)
 	if self.selectionTailX then
 		self.selectionObj:setVisible(true)
-		local selectionX = self.cursorX
 		local selectionWidth = self.selectionTailX - self.cursorX -- Width can be negative, it works fine.
-		self.selectionObj:setPos(self.maskLeftEdgeX + selectionX)
+		self.selectionObj:setPos(self.cursorX + self.textXPad)
 		self.selectionObj:setSize(selectionWidth)
 	else
 		self.selectionObj:setVisible(false)
