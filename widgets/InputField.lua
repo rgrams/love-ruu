@@ -130,6 +130,10 @@ function InputField.getSelectionRightIdx(self)
 	return math.max(self.cursorIdx, self.selectionTailIdx)
 end
 
+function InputField.getSelectedText(self)
+	local left, right = self:getSelectionLeftIdx(), self:getSelectionRightIdx()
+	return string.sub(self.text, left + 1, right)
+end
 --------------------  Cursor Movement  --------------------
 function InputField.setCursorIdx(self, index)
 	local isSelecting = self.ruu:isSelectionModifierPressed()
@@ -242,10 +246,33 @@ InputField["end"] = function(self, depth)
 	return true
 end
 
-function InputField.ruuInput(wgt, depth, action, value, change, rawChange, isRepeat)
+function InputField.ruuInput(self, depth, action, value, change, rawChange, isRepeat)
 	if depth > 1 then  return  end
-	if action == "select all" and change == 1 then
-		wgt:selectAll()
+	local ctrlIsPressed = love.keyboard.isDown("lctrl", "rctrl")
+	if change == 1 and ctrlIsPressed then
+		if action == "select all" then
+			self:selectAll()
+			return true
+		elseif action == "cut" then
+			if self.hasSelection then
+				local selectedText = self:getSelectedText()
+				love.system.setClipboardText(selectedText)
+				self:insertText("")
+				return true
+			end
+		elseif action == "copy" then
+			if self.hasSelection then
+				local selectedText = self:getSelectedText()
+				love.system.setClipboardText(selectedText)
+				return true
+			end
+		elseif action == "paste" then
+			local clipboard = love.system.getClipboardText()
+			if clipboard then
+				self:insertText(clipboard)
+				return true
+			end
+		end
 	end
 end
 
