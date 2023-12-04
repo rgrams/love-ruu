@@ -123,7 +123,7 @@ function Ruu.setEnabled(self, widget, enabled)
 			self:mouseMoved(self.mx, self.my, 0, 0)
 		end
 		if contains(self.focusedWgts, widget) then
-			local topFocused = self.focusedWgts[1]
+			local topFocused = self:getFocused()
 			if widget == topFocused then
 				self:setFocus(nil) -- If we disable the top focused widget, remove focus.
 			else
@@ -155,6 +155,14 @@ function Ruu.setFocus(self, widget, isKeyboard)
 		self.themeEssentials.getAncestorPanels(widget, self.focusedWgts)
 		self:bubble(self.focusedWgts, "focus", isKeyboard)
 	end
+end
+
+function Ruu.getFocused(self)
+	return self.focusedWgts[1]
+end
+
+function Ruu.getHovered(self)
+	return self.hoveredWgts[1]
 end
 
 local function loopedIndex(list, index)
@@ -288,7 +296,7 @@ function Ruu.mouseMoved(self, x, y, dx, dy)
 			end
 		end
 
-		if self.hoveredWgts[1] then
+		if self:getHovered() then
 			if newHovered then
 				local wgtsToUnhover = getSubtraction(self.hoveredWgts, newHovered)
 				util.sortByDepth(wgtsToUnhover, self.layerDepths)
@@ -322,7 +330,7 @@ function Ruu.input(self, action, value, change, rawChange, isRepeat, x, y, dx, d
 		self:mouseMoved(x, y, dx, dy)
 	elseif action == self.CLICK then
 		if change == 1 then
-			self:setFocus(self.hoveredWgts[1], IS_NOT_KEYBOARD)
+			self:setFocus(self:getHovered(), IS_NOT_KEYBOARD)
 			local r = self:bubble(self.hoveredWgts, "press", self.mx, self.my, IS_NOT_KEYBOARD)
 			if r then  return r  end
 		elseif change == -1 then
@@ -338,7 +346,7 @@ function Ruu.input(self, action, value, change, rawChange, isRepeat, x, y, dx, d
 			if r then  return r  end
 		end
 	elseif self.NAV_DIRS[action] and (change == 1 or isRepeat) then
-		if self.focusedWgts[1] then
+		if self:getFocused() then
 			local dirStr = self.NAV_DIRS[action]
 			local neighbor = self:bubble(self.focusedWgts, "getFocusNeighbor", dirStr)
 			if neighbor == true then -- No neighbor, but used input.
